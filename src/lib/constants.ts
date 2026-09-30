@@ -11,19 +11,22 @@ export interface NavItem {
 }
 
 export const MENU_ITEMS: NavItem[] = [
-    { label: "Dashboard", href: "#", icon: "dashboard" },
-    { label: "Projects", href: "#", icon: "projects" },
-    { label: "Teams", href: "#", icon: "teams" },
-    { label: "Schedule", href: "#", icon: "schedule" },
-    { label: "Analytics", href: "#", icon: "analytics" },
+    { label: "Dashboard", href: "/", icon: "dashboard" },
+    { label: "Projects", href: "/projects", icon: "projects" },
+    { label: "Teams", href: "/teams", icon: "teams" },
+    { label: "Schedule", href: "/schedule", icon: "schedule" },
+    { label: "Analytics", href: "/analytics", icon: "analytics" },
 ];
 
 export const PROFILE_SUB_ITEMS: NavItem[] = [
-    { label: "Payroll", href: "#", icon: "payroll" },
-    { label: "Attendance", href: "#", icon: "attendance" },
-    { label: "Performance", href: "#", icon: "performance" },
-    { label: "Time-off", href: "#", icon: "timeoff" },
+    { label: "Payroll", href: "/payroll", icon: "payroll" },
+    { label: "Attendance", href: "/attendance", icon: "attendance" },
+    { label: "Performance", href: "/performance", icon: "performance" },
+    { label: "Time-off", href: "/time-off", icon: "timeoff" },
 ];
+
+// A route is "profile-active" if the current path starts with any of these
+export const PROFILE_ROUTES = PROFILE_SUB_ITEMS.map((item) => item.href);
 
 export const CURRENT_USER = {
     name: "Miquella",

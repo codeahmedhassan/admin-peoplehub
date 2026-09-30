@@ -1,13 +1,45 @@
 "use client";
 
-import { BRAND, CURRENT_USER, MENU_ITEMS, PROFILE_SUB_ITEMS } from "@/lib/constants";
-import SidebarIcon from "./SidebarIcon";
-import Image from "next/image";
-import { useSidebar } from "./SidebarContext";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import {
+    BRAND,
+    CURRENT_USER,
+    MENU_ITEMS,
+    PROFILE_SUB_ITEMS,
+} from "@/lib/constants";
+import SidebarIcon from "./SidebarIcon";
+import { useSidebar } from "./SidebarContext";
+
+/* ---------- Route matching helpers ---------- */
+function isRouteActive(pathname: string, href: string): boolean {
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isAnyRouteActive(pathname: string, hrefs: string[]): boolean {
+    return hrefs.some((href) => isRouteActive(pathname, href));
+}
 
 export default function Sidebar() {
     const { collapsed, mobileOpen, toggleCollapsed, closeMobile } = useSidebar();
+    const pathname = usePathname();
+
+    const profileRoutes = PROFILE_SUB_ITEMS.map((item) => item.href);
+    const profileGroupActive = isAnyRouteActive(pathname, profileRoutes);
+
+    // Dropdown open state — initialized to open if a profile route is active
+    const [profileOpen, setProfileOpen] = useState<boolean>(profileGroupActive);
+
+    // Auto-open the group whenever the user navigates into one of its routes
+    useEffect(() => {
+        if (profileGroupActive) setProfileOpen(true);
+    }, [profileGroupActive]);
+
+    // When sidebar is collapsed (desktop), force group closed visually
+    const subItemsVisible = profileOpen && !collapsed;
 
     return (
         <>
@@ -15,7 +47,9 @@ export default function Sidebar() {
             <div
                 aria-hidden={!mobileOpen}
                 onClick={closeMobile}
-                className={`fixed z-40 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                className={`fixed z-40 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${mobileOpen
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
                     }`}
             />
 
@@ -28,7 +62,7 @@ export default function Sidebar() {
                     collapsed ? "lg:w-18" : "lg:w-57.5",
                     mobileOpen ? "translate-x-0" : "-translate-x-full",
                     "transition-[width,transform] duration-300 ease-in-out will-change-[width,transform]",
-                    "shrink-0"
+                    "shrink-0",
                 ].join(" ")}
             >
                 <div
@@ -36,18 +70,24 @@ export default function Sidebar() {
                         "flex flex-col h-full w-full",
                         "bg-[#F1F3F7] lg:bg-transparent",
                         "rounded-2xl lg:rounded-none",
-                        "justify-between"
+                        "justify-between",
                     ].join(" ")}
                 >
-                    <div className={["flex flex-col gap-7", collapsed ? "lg:gap-5" : ""].join(" ")}>
+                    <div
+                        className={[
+                            "flex flex-col gap-7",
+                            collapsed ? "lg:gap-5" : "",
+                        ].join(" ")}
+                    >
                         {/* ================= Logo / Toggle ================= */}
                         <div
                             className={[
                                 "flex items-center pt-1",
-                                collapsed ? "lg:justify-center px-0" : "justify-between px-2"
+                                collapsed
+                                    ? "lg:justify-center px-0"
+                                    : "justify-between px-2",
                             ].join(" ")}
                         >
-                            {/* Logo — when collapsed, becomes the expand button on hover */}
                             <button
                                 type="button"
                                 aria-label={collapsed ? "Expand sidebar" : "Go to dashboard"}
@@ -57,7 +97,7 @@ export default function Sidebar() {
                                     "w-9 h-9 shrink-0",
                                     collapsed
                                         ? "cursor-pointer hover:bg-white hover:shadow-md"
-                                        : "cursor-default"
+                                        : "cursor-default",
                                 ].join(" ")}
                             >
                                 <Image
@@ -67,7 +107,7 @@ export default function Sidebar() {
                                     height={24}
                                     className={[
                                         "transition-all duration-300",
-                                        collapsed ? "group-hover/sidebar:opacity-0" : ""
+                                        collapsed ? "group-hover/sidebar:opacity-0" : "",
                                     ].join(" ")}
                                 />
 
@@ -81,18 +121,21 @@ export default function Sidebar() {
                                     >
                                         <rect height="16" rx="4" width="18" x="3" y="4" />
                                         <line x1="9" x2="9" y1="4" y2="20" />
-                                        <polyline points="14 9 17 12 14 15" strokeLinecap="round" strokeLinejoin="round" />
+                                        <polyline
+                                            points="14 9 17 12 14 15"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
                                     </svg>
                                 )}
                             </button>
 
-                            {/* Brand name + collapse button — hidden when collapsed */}
                             <div
                                 className={[
                                     "flex items-center justify-between flex-1 overflow-hidden transition-all duration-300",
                                     collapsed
                                         ? "lg:max-w-0 lg:opacity-0 lg:ml-0"
-                                        : "max-w-50 opacity-100 ml-2"
+                                        : "max-w-50 opacity-100 ml-2",
                                 ].join(" ")}
                             >
                                 <span className="font-bold text-xl text-slate-900 tracking-tight whitespace-nowrap">
@@ -139,44 +182,50 @@ export default function Sidebar() {
 
                         {/* ================= Navigation ================= */}
                         <nav className="flex flex-col gap-1">
-                            {/* Section label */}
                             <span
                                 className={[
                                     "text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 transition-all duration-300 overflow-hidden whitespace-nowrap",
-                                    collapsed ? "lg:opacity-0 lg:h-0 lg:mb-0 lg:px-0 px-3" : "px-3 opacity-100"
+                                    collapsed
+                                        ? "lg:opacity-0 lg:h-0 lg:mb-0 lg:px-0 px-3"
+                                        : "px-3 opacity-100",
                                 ].join(" ")}
                             >
                                 MENU
                             </span>
 
-                            {/* Dashboard */}
+                            {/* ---------- Dashboard (single link) ---------- */}
                             <NavLink
-                                href="#"
+                                href="/"
                                 icon="dashboard"
                                 label="Dashboard"
                                 collapsed={collapsed}
+                                active={isRouteActive(pathname, "/")}
                             />
 
-                            {/* ============ Active Profile Group ============ */}
+                            {/* ---------- Profile Group ---------- */}
                             <div
                                 className={[
-                                    "mt-1 relative flex flex-col bg-[#1457DC] text-white shadow-lg shadow-blue-500/20",
-                                    "transition-all duration-300 ease-out will-change-[border-radius,padding]",
+                                    "mt-1 relative flex flex-col text-white shadow-lg transition-all duration-300 ease-out will-change-[border-radius,padding]",
+                                    profileGroupActive
+                                        ? "bg-[#1457DC] shadow-blue-500/20"
+                                        : "bg-[#1457DC]/90 shadow-blue-500/10",
                                     collapsed
                                         ? "lg:rounded-[22px] lg:p-0 p-1 rounded-2xl"
                                         : "lg:rounded-2xl lg:p-1 p-1 rounded-2xl",
                                 ].join(" ")}
                             >
-                                {/* Profile header row */}
-                                <div
+                                {/* Header — clickable to toggle dropdown */}
+                                <button
+                                    type="button"
+                                    onClick={() => setProfileOpen((v) => !v)}
+                                    aria-expanded={profileOpen}
                                     className={[
-                                        "relative flex items-center cursor-pointer transition-all duration-300",
+                                        "relative flex items-center cursor-pointer transition-all duration-300 w-full",
                                         collapsed
                                             ? "lg:justify-center lg:px-0 lg:py-2.5 px-3 py-2.5"
-                                            : "justify-between px-3 py-2.5"
+                                            : "justify-between px-3 py-2.5",
                                     ].join(" ")}
                                 >
-                                    {/* Left: icon + label — becomes absolute-centered when collapsed */}
                                     <div
                                         className={[
                                             "flex items-center transition-all duration-300",
@@ -200,51 +249,69 @@ export default function Sidebar() {
                                         <span
                                             className={[
                                                 "text-[14px] font-semibold tracking-wide whitespace-nowrap transition-all duration-300 overflow-hidden",
-                                                collapsed ? "lg:max-w-0 lg:opacity-0" : "max-w-30 opacity-100"
+                                                collapsed
+                                                    ? "lg:max-w-0 lg:opacity-0"
+                                                    : "max-w-30 opacity-100",
                                             ].join(" ")}
                                         >
                                             People
                                         </span>
                                     </div>
 
-                                    {/* Right: chevron — hides when collapsed */}
+                                    {/* Chevron — rotates with open state */}
                                     <svg
                                         className={[
                                             "w-4 h-4 text-white/80 transition-all duration-300 shrink-0 overflow-hidden",
-                                            collapsed ? "lg:max-w-0 lg:opacity-0" : "max-w-4 opacity-100"
+                                            collapsed
+                                                ? "lg:max-w-0 lg:opacity-0"
+                                                : "max-w-4 opacity-100",
+                                            profileOpen ? "rotate-180" : "rotate-0",
                                         ].join(" ")}
                                         fill="none"
                                         stroke="currentColor"
                                         strokeWidth={2.5}
                                         viewBox="0 0 24 24"
                                     >
-                                        <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path
+                                            d="M19 9l-7 7-7-7"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
                                     </svg>
-                                </div>
+                                </button>
 
-                                {/* Sub-items — hidden when collapsed */}
+                                {/* Sub-items — collapse via max-height + opacity */}
                                 <div
                                     className={[
                                         "flex flex-col gap-0.5 text-white/80 text-[13px] font-medium transition-all duration-300 overflow-hidden",
-                                        collapsed
-                                            ? "lg:max-h-0 lg:opacity-0 lg:pb-0 lg:pt-0 px-1.5 pb-2 pt-0.5"
-                                            : "max-h-75 opacity-100 px-1.5 pb-2 pt-0.5"
+                                        subItemsVisible
+                                            ? "max-h-75 opacity-100 px-1.5 pb-2 pt-0.5"
+                                            : "max-h-0 opacity-0 px-1.5 pb-0 pt-0 lg:pb-0 lg:pt-0",
                                     ].join(" ")}
                                 >
-                                    {PROFILE_SUB_ITEMS.map((item) => (
-                                        <a
-                                            key={item.label}
-                                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors whitespace-nowrap"
-                                            href={item.href}
-                                        >
-                                            <SidebarIcon name={item.icon} />
-                                            {item.label}
-                                        </a>
-                                    ))}
+                                    {PROFILE_SUB_ITEMS.map((item) => {
+                                        const active = isRouteActive(pathname, item.href);
+                                        return (
+                                            <Link
+                                                key={item.label}
+                                                href={item.href}
+                                                onClick={closeMobile}
+                                                className={[
+                                                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors whitespace-nowrap",
+                                                    active
+                                                        ? "bg-white/25 text-white font-semibold"
+                                                        : "hover:bg-white/10 text-white/80",
+                                                ].join(" ")}
+                                            >
+                                                <SidebarIcon name={item.icon} />
+                                                {item.label}
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
-                            {/* Remaining menu items */}
+                            {/* ---------- Remaining single links ---------- */}
                             {MENU_ITEMS.slice(1).map((item) => (
                                 <NavLink
                                     key={item.label}
@@ -252,6 +319,7 @@ export default function Sidebar() {
                                     icon={item.icon}
                                     label={item.label}
                                     collapsed={collapsed}
+                                    active={isRouteActive(pathname, item.href)}
                                 />
                             ))}
                         </nav>
@@ -263,10 +331,9 @@ export default function Sidebar() {
                             "relative bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm cursor-pointer hover:bg-white transition-all duration-300 flex items-center",
                             collapsed
                                 ? "lg:justify-center lg:p-2 p-2.5 justify-between"
-                                : "p-2.5 justify-between"
+                                : "p-2.5 justify-between",
                         ].join(" ")}
                     >
-                        {/* Avatar + text wrapper — becomes absolute-centered when collapsed */}
                         <div
                             className={[
                                 "flex items-center overflow-hidden min-w-0 transition-all duration-300",
@@ -287,7 +354,9 @@ export default function Sidebar() {
                             <div
                                 className={[
                                     "flex flex-col truncate transition-all duration-300 overflow-hidden",
-                                    collapsed ? "lg:max-w-0 lg:opacity-0" : "max-w-35 opacity-100"
+                                    collapsed
+                                        ? "lg:max-w-0 lg:opacity-0"
+                                        : "max-w-35 opacity-100",
                                 ].join(" ")}
                             >
                                 <span className="text-xs font-bold text-slate-900 leading-tight truncate">
@@ -299,11 +368,10 @@ export default function Sidebar() {
                             </div>
                         </div>
 
-                        {/* Chevron */}
                         <svg
                             className={[
                                 "w-4 h-4 text-slate-400 shrink-0 transition-all duration-300",
-                                collapsed ? "lg:max-w-0 lg:opacity-0 ml-0" : "ml-1"
+                                collapsed ? "lg:max-w-0 lg:opacity-0 ml-0" : "ml-1",
                             ].join(" ")}
                             fill="none"
                             stroke="currentColor"
@@ -329,24 +397,28 @@ function NavLink({
     icon,
     label,
     collapsed,
+    active,
 }: {
     href: string;
     icon: string;
     label: string;
     collapsed: boolean;
+    active: boolean;
 }) {
     return (
         <Link
             href={href}
             title={collapsed ? label : undefined}
             className={[
-                "group/nav relative flex items-center rounded-xl text-[14px] font-medium text-slate-600 hover:bg-white/60 transition-colors",
+                "group/nav relative flex items-center rounded-xl text-[14px] transition-colors",
+                active
+                    ? "bg-white text-[#1457DC] font-semibold shadow-sm"
+                    : "font-medium text-slate-600 hover:bg-white/60",
                 collapsed
                     ? "lg:justify-center lg:px-0 lg:py-3 gap-3.5 px-3.5 py-2.5"
                     : "gap-3.5 px-3.5 py-2.5",
             ].join(" ")}
         >
-            {/* Icon wrapper — becomes absolute-centered when collapsed */}
             <span
                 className={[
                     "flex items-center shrink-0 transition-all duration-300",
@@ -355,7 +427,13 @@ function NavLink({
                         : "",
                 ].join(" ")}
             >
-                <SidebarIcon name={icon} className="w-4.5 h-4.5 text-slate-500 shrink-0" />
+                <SidebarIcon
+                    name={icon}
+                    className={[
+                        "w-4.5 h-4.5 shrink-0",
+                        active ? "text-[#1457DC]" : "text-slate-500",
+                    ].join(" ")}
+                />
             </span>
 
             <span

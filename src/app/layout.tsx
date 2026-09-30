@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="en" className={jakarta.variable}>
       <body className="text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
         <SidebarProvider>
-          <div className="w-full max-w-360 mx-auto bg-[#F1F3F7] rounded-3xl lg:rounded-4xl pe-6 shadow-2xl border border-slate-200/60 flex gap-0 lg:gap-6 items-start">
+          <div className="w-full max-w-360 mx-auto bg-[#F1F3F7] pe-6 shadow-2xl border border-slate-200/60 flex gap-0 lg:gap-6 items-start">
             <Sidebar />
             <main className="flex-1 min-w-0 flex flex-col gap-6">
               <Navbar />
