@@ -9,8 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "next": "^16.4.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-icons": "^5.7.0"
   },
   "devDependencies": {
