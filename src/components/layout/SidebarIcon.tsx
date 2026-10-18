@@ -1,3 +1,5 @@
+import { PiPerson } from "react-icons/pi";
+
 interface SidebarIconProps {
     name: string;
     className?: string;
@@ -25,12 +27,9 @@ export default function SidebarIcon({
                     <rect height="7" rx="1.5" width="7" x="3" y="14" />
                 </svg>
             );
-        case "payroll":
+        case "add":
             return (
-                <svg {...strokeProps} className="w-4 h-4">
-                    <rect height="14" rx="2" width="20" x="2" y="5" />
-                    <line x1="2" x2="22" y1="10" y2="10" />
-                </svg>
+                <PiPerson />
             );
         case "attendance":
             return (

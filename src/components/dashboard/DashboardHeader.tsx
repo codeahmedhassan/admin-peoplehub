@@ -20,7 +20,7 @@ export default function DashboardHeader() {
                     </svg>
                     <span>Export</span>
                 </button>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-dark rounded-full text-xs font-semibold text-white shadow-sm bg-text-dark hover:bg-slate-800 transition-colors cursor-pointer">
+                <button className="flex items-center justify-center gap-2 px-5 py-2.5 bg-dark rounded-full text-xs font-semibold text-white shadow-sm bg-text-dark hover:bg-text-dark/95 transition-all cursor-pointer">
                     <span className="text-base leading-none font-normal">+</span>
                     <span>Add new entry</span>
                 </button>

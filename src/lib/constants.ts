@@ -19,7 +19,7 @@ export const MENU_ITEMS: NavItem[] = [
 ];
 
 export const PROFILE_SUB_ITEMS: NavItem[] = [
-    { label: "Payroll", href: "/payroll", icon: "payroll" },
+    { label: "Employees", href: "/employee", icon: "add" },
     { label: "Attendance", href: "/attendance", icon: "attendance" },
     { label: "Performance", href: "/performance", icon: "performance" },
     { label: "Time-off", href: "/time-off", icon: "timeoff" },

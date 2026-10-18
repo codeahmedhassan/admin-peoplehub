@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
@@ -16,11 +18,52 @@ export const metadata: Metadata = {
   description: "HR Management Dashboard",
 };
 
-export default function RootLayout({
+const API_BASE_URL =
+  process.env.API_INTERNAL_URL?.replace(/\/$/, "") ||
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+  "http://localhost:3000/api/v1";
+
+const LANDING_URL =
+  process.env.NEXT_PUBLIC_MARKETING_URL || "http://localhost:3001";
+
+async function getSessionUser() {
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/session`, {
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      data?: { authenticated?: boolean; user?: unknown };
+    };
+    if (!data?.data?.authenticated) return null;
+    return data.data.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Server-side guard. Runs on every request before any HTML is sent.
+  // proxy.ts already does this, but doing it here too means the layout
+  // has the user object available without a second network round trip.
+  const user = await getSessionUser();
+
+  if (!user) {
+    // Hard redirect at the server level. Browser never sees any admin HTML.
+    redirect(LANDING_URL);
+  }
+
   return (
     <html lang="en" className={jakarta.variable}>
       <body className="text-slate-800 antialiased selection:bg-blue-600 selection:text-white">

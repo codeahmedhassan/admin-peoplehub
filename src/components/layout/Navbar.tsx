@@ -1,10 +1,19 @@
 "use client";
 
-import { CURRENT_USER } from "@/lib/constants";
+import { useState } from "react";
 import { useSidebar } from "./SidebarContext";
+import { CURRENT_USER } from "@/lib/constants";
+import { logout } from "@/lib/api";
 
 export default function Navbar() {
     const { toggleMobile } = useSidebar();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
+
+    async function handleLogout() {
+        setLoggingOut(true);
+        await logout(); // redirects on its own
+    }
 
     return (
         <header className="sticky top-0 z-30 -mx-4 lg:-mx-6 px-4 lg:px-6 py-3 lg:py-4 bg-[#F1F3F7]/80 backdrop-blur-md flex items-center justify-between gap-4 flex-wrap">
@@ -100,33 +109,75 @@ export default function Navbar() {
                     </svg>
                 </button>
 
-                {/* User pill */}
-                <div className="flex items-center gap-3 bg-white pl-1.5 pr-2 sm:pr-3 py-1 rounded-full shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-200 shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                            alt={CURRENT_USER.name}
-                            className="w-full h-full object-cover"
-                            src={CURRENT_USER.avatar}
-                        />
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
-                    </div>
-                    <div className="hidden sm:flex flex-col text-left">
-                        <span className="text-xs font-bold text-slate-900 leading-tight">
-                            {CURRENT_USER.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                            {CURRENT_USER.email}
-                        </span>
-                    </div>
-                    <svg
-                        className="hidden sm:block w-3.5 h-3.5 text-slate-400 ml-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                {/* User pill + dropdown */}
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setMenuOpen((v) => !v)}
+                        aria-haspopup="menu"
+                        aria-expanded={menuOpen}
+                        className="flex items-center gap-3 bg-white pl-1.5 pr-2 sm:pr-3 py-1 rounded-full shadow-sm cursor-pointer hover:bg-slate-50 transition-colors"
                     >
-                        <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
-                    </svg>
+                        <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-200 shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                alt={CURRENT_USER.name}
+                                className="w-full h-full object-cover"
+                                src={CURRENT_USER.avatar}
+                            />
+                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
+                        </div>
+                        <div className="hidden sm:flex flex-col text-left">
+                            <span className="text-xs font-bold text-slate-900 leading-tight">
+                                {CURRENT_USER.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                                {CURRENT_USER.email}
+                            </span>
+                        </div>
+                        <svg
+                            className="hidden sm:block w-3.5 h-3.5 text-slate-400 ml-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                        </svg>
+                    </button>
+
+                    {menuOpen && (
+                        <>
+                            {/* Click-away backdrop */}
+                            <button
+                                type="button"
+                                aria-label="Close menu"
+                                className="fixed inset-0 z-40 cursor-default"
+                                onClick={() => setMenuOpen(false)}
+                            />
+                            <div
+                                role="menu"
+                                className="absolute right-0 mt-2 w-44 z-50 rounded-2xl bg-white border border-slate-200 shadow-lg overflow-hidden"
+                            >
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={handleLogout}
+                                    disabled={loggingOut}
+                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-60"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                        />
+                                    </svg>
+                                    <span>{loggingOut ? "Logging out…" : "Log out"}</span>
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </header>
