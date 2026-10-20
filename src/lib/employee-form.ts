@@ -2,6 +2,39 @@
 // Add Employee — form schema, options, and persistence helpers
 // ============================================================
 
+export type DocumentType =
+    | "Employment Contract"
+    | "National ID"
+    | "Passport"
+    | "CV / Résumé"
+    | "Degree / Certificate"
+    | "Offer Letter"
+    | "Tax Form"
+    | "Profile Photo"
+    | "Other";
+
+export const DOCUMENT_TYPES: DocumentType[] = [
+    "Employment Contract",
+    "National ID",
+    "Passport",
+    "CV / Résumé",
+    "Degree / Certificate",
+    "Offer Letter",
+    "Tax Form",
+    "Profile Photo",
+    "Other",
+];
+
+export interface StagedDocument {
+    id: string;           // temp id, stable across rerenders
+    type: DocumentType;
+    label: string;        // user-facing label (custom when type === "Other")
+    fileName: string;
+    fileSize: number;     // bytes
+    mimeType: string;
+    previewUrl?: string;  // object URL for images — for preview only
+}
+
 export type EmploymentType =
     | "Full Time"
     | "Part Time"
@@ -15,6 +48,8 @@ export type EmploymentStatus = "Active" | "Probation" | "On Leave" | "Inactive";
 export type WorkArrangement = "On-site" | "Remote" | "Hybrid";
 export type Gender = "Male" | "Female" | "Other" | "";
 export type PayFrequency = "Monthly" | "Bi-Weekly" | "Weekly" | "Semi-Monthly";
+
+export const stagedFiles = new Map<string, File>();
 
 export interface EmployeeDraft {
     // Step 1 — Basic
@@ -76,6 +111,7 @@ export interface EmployeeDraft {
     hasIdentityDoc: boolean;
     hasCertificates: boolean;
     hasOtherDocs: boolean;
+    documents: StagedDocument[];
 
     createLogin: boolean;
     loginEmail: string;
@@ -83,7 +119,45 @@ export interface EmployeeDraft {
     sendInvitation: boolean;
 }
 
+export function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+export const ACCEPTED_FILE_TYPES =
+    ".pdf,.doc,.docx,.png,.jpg,.jpeg,.xls,.xlsx,.csv";
+
 export const EMPLOYEE_DRAFT_STORAGE_KEY = "wn:employee-draft:v1";
+
+/**
+ * Fields that must NOT be written to localStorage:
+ *   - nationalId (sensitive personal identifier)
+ *   - any document previewUrl (object URLs are invalid across reloads anyway)
+ *
+ * Any file references in `documents[]` are stripped — the actual File
+ * objects live in the module-level `stagedFiles` Map and don't survive a
+ * reload regardless. This means if the user reloads mid-wizard, they'll
+ * have to re-attach any files. That is the correct trade-off.
+ */
+export function sanitizeDraftForStorage(draft: EmployeeDraft): EmployeeDraft {
+    const safeDocuments = (draft.documents ?? []).map((d) => ({
+        ...d,
+        previewUrl: undefined,
+    }));
+    return {
+        ...draft,
+        nationalId: "",
+        documents: safeDocuments,
+        // Force the client to re-upload if they had staged files
+        hasContract: false,
+        hasCv: false,
+        hasIdentityDoc: false,
+        hasCertificates: false,
+        hasOtherDocs: false,
+    };
+}
 
 export function createEmptyDraft(generatedId: string, today: string): EmployeeDraft {
     return {
@@ -135,6 +209,7 @@ export function createEmptyDraft(generatedId: string, today: string): EmployeeDr
         payrollGroup: "",
 
         nationalId: "",
+        documents: [],
         hasContract: false,
         hasCv: false,
         hasIdentityDoc: false,

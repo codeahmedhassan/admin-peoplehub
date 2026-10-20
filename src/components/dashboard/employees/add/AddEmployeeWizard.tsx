@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+    stagedFiles,
     validateStep,
     type StepFieldErrors,
 } from "@/lib/employee-form";
+import { employeeApi } from "@/lib/api";
 import { useDraftPersistence } from "./useDraftPersistence";
 import BasicStep from "./BasicStep";
 import EmploymentStep from "./EmploymentStep";
@@ -31,6 +33,8 @@ export default function AddEmployeeWizard() {
     const { ready, step, setStep, draft, updateDraft, lastSavedAt, clearDraft } =
         useDraftPersistence();
     const [errors, setErrors] = useState<StepFieldErrors>({});
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const isReview = step === 7;
 
@@ -70,10 +74,101 @@ export default function AddEmployeeWizard() {
         setStep(target);
     };
 
-    const handleSubmit = () => {
-        console.log("Submitting employee:", draft);
-        clearDraft();
-        router.push("/employees");
+    const handleSubmit = async () => {
+        setSubmitError(null);
+        setSubmitting(true);
+
+        try {
+            // Build the payload — one object that matches the backend Joi schema
+            const payload = {
+                firstName: draft.firstName.trim(),
+                lastName: draft.lastName.trim(),
+                phone: draft.phone.trim(),
+                preferredName: draft.preferredName.trim(),
+                gender: draft.gender,
+                avatar: draft.avatar,
+                manuallyPickedAvatar: draft.manuallyPickedAvatar,
+
+                employmentStatus: draft.employmentStatus,
+                employmentType: draft.employmentType,
+                designation: draft.designation.trim(),
+                department: draft.department,
+                reportingManager: draft.reportingManager,
+                joiningDate: draft.joiningDate,
+                workLocation: draft.workLocation,
+                workArrangement: draft.workArrangement,
+                probationEndDate: draft.probationEndDate || null,
+                contractEndDate: draft.contractEndDate || null,
+                employeeCategory: draft.employeeCategory,
+
+                personalEmail: draft.personalEmail.trim(),
+                dateOfBirth: draft.dateOfBirth || null,
+                residentialAddress: draft.residentialAddress.trim(),
+                city: draft.city.trim(),
+                country: draft.country.trim(),
+                emergencyName: draft.emergencyName.trim(),
+                emergencyRelation: draft.emergencyRelation.trim(),
+                emergencyPhone: draft.emergencyPhone.trim(),
+
+                workSchedule: draft.workSchedule.trim(),
+                weeklyWorkingDays: draft.weeklyWorkingDays,
+                attendanceLocation: draft.attendanceLocation.trim(),
+                attendanceMethod: draft.attendanceMethod,
+                attendanceEligibility: draft.attendanceEligibility,
+                overtimeEligibility: draft.overtimeEligibility,
+                timeZone: draft.timeZone,
+
+                salaryAmount: Number(draft.salaryAmount),
+                salaryCurrency: draft.salaryCurrency,
+                payFrequency: draft.payFrequency,
+                bankAccountName: draft.bankAccountName.trim(),
+                bankAccountNumber: draft.bankAccountNumber.trim(),
+                bankName: draft.bankName.trim(),
+                taxIdentifier: draft.taxIdentifier.trim(),
+                payrollGroup: draft.payrollGroup,
+
+                nationalId: draft.nationalId.trim(),
+
+                createLogin: draft.createLogin,
+                loginEmail: draft.loginEmail.trim().toLowerCase(),
+                systemRole: draft.systemRole,
+                sendInvitation: draft.sendInvitation,
+            };
+
+            // Build file list + metadata, aligned by index
+            const files: File[] = [];
+            const fileMeta: { fileId: string; type: string; label: string }[] = [];
+            for (const doc of draft.documents) {
+                const file = stagedFiles.get(doc.id);
+                if (!file) {
+                    setSubmitError(
+                        `The file "${doc.label}" was lost. Please re-upload it before submitting.`
+                    );
+                    setSubmitting(false);
+                    return;
+                }
+                files.push(file);
+                fileMeta.push({ fileId: doc.id, type: doc.type, label: doc.label });
+            }
+
+            const { employee } = await employeeApi.create(payload, files, fileMeta);
+
+            // Success — clean up
+            draft.documents.forEach((d) => {
+                if (d.previewUrl) URL.revokeObjectURL(d.previewUrl);
+            });
+            stagedFiles.clear();
+            clearDraft();
+
+            router.push(`/employees`);
+        } catch (err) {
+            setSubmitting(false);
+            setSubmitError(
+                err instanceof Error
+                    ? err.message
+                    : "Something went wrong while saving the employee."
+            );
+        }
     };
 
     const handleSaveAndExit = () => {
@@ -212,11 +307,23 @@ export default function AddEmployeeWizard() {
                         )}
                         {step === 7 && <ReviewStep draft={draft} jumpTo={jumpTo} />}
 
+                        {submitError && (
+                            <div
+                                role="alert"
+                                className="mt-6 flex items-start gap-2 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs px-4 py-3"
+                            >
+                                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                                </svg>
+                                <span>{submitError}</span>
+                            </div>
+                        )}
+
                         {/* Footer nav */}
                         <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
                             <button
                                 onClick={goBack}
-                                disabled={step === 1}
+                                disabled={step === 1 || submitting}
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                             >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -232,12 +339,25 @@ export default function AddEmployeeWizard() {
                                 {isReview ? (
                                     <button
                                         onClick={handleSubmit}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-text-dark rounded-full text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors"
+                                        disabled={submitting}
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-text-dark rounded-full text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                                            <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                        Create Employee
+                                        {submitting ? (
+                                            <>
+                                                <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                                    <circle cx="12" cy="12" r="9" strokeOpacity="0.25" />
+                                                    <path d="M21 12a9 9 0 00-9-9" strokeLinecap="round" />
+                                                </svg>
+                                                Saving…
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                                    <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                                Create Employee
+                                            </>
+                                        )}
                                     </button>
                                 ) : (
                                     <button

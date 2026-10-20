@@ -60,9 +60,69 @@ export async function logout() {
     try {
         await apiFetch("/auth/logout", { method: "POST" });
     } catch {
-        // Even if the API call fails, still send the user to signin —
-        // the backend clears cookies on its side; worst case they get a 401
-        // on the next request and are bounced back here.
+        // Even if the API call fails, still send the user to signin
     }
     window.location.href = SIGNIN_URL;
 }
+
+// -------------------------------------------------------------------
+// Employee API — multipart upload. Do NOT send JSON content-type.
+// -------------------------------------------------------------------
+export const employeeApi = {
+    create: async (
+        data: unknown,
+        files: File[],
+        fileMeta: { fileId: string; type: string; label: string }[]
+    ) => {
+        // Defensive normalization — never send "undefined" or "null" strings.
+        const safeFiles = Array.isArray(files) ? files : [];
+        const safeMeta = Array.isArray(fileMeta) ? fileMeta : [];
+
+        // Guarantee alignment between files and metadata.
+        if (safeMeta.length !== safeFiles.length) {
+            throw new ApiError(
+                400,
+                `Internal error: ${safeFiles.length} file(s) but ${safeMeta.length} metadata entries.`
+            );
+        }
+
+        const formData = new FormData();
+        formData.append("data", JSON.stringify(data ?? {}));
+        formData.append("fileMeta", JSON.stringify(safeMeta));
+        for (const f of safeFiles) {
+            formData.append("files", f);
+        }
+
+        const res = await fetch(`${API_BASE_URL}/employees`, {
+            method: "POST",
+            credentials: "include",
+            body: formData, // browser sets the multipart boundary
+        });
+
+        let body: any = null;
+        const text = await res.text();
+        if (text) {
+            try {
+                body = JSON.parse(text);
+            } catch {
+                body = { message: text };
+            }
+        }
+        if (!res.ok) {
+            throw new ApiError(
+                res.status,
+                body?.message || `Request failed (${res.status})`
+            );
+        }
+        return (body?.data ?? body) as { employee: { id: string; employeeId: string } };
+    },
+
+    list: () =>
+        apiFetch<{ employees: import("./employee-mapper").ApiEmployee[] }>(
+            "/employees",
+            { method: "GET" }
+        ),
+
+    remove: (id: string) =>
+        apiFetch<null>(`/employees/${id}`, { method: "DELETE" }),
+};

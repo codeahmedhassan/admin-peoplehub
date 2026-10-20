@@ -143,7 +143,7 @@ export default function EmployeeTable({
                                                     )}
                                                 </div>
                                                 <span className="text-[11px] text-slate-400 font-medium">
-                                                    {emp.id} · {emp.email || "—"}
+                                                    {emp.employeeId} · {emp.email || "—"}
                                                 </span>
                                             </div>
                                         </div>

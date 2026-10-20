@@ -83,6 +83,10 @@ export default function ReviewStep({ draft, jumpTo }: Props) {
             </Section>
 
             <Section title="Documents & Access" onEdit={() => jumpTo(6)}>
+                <Row
+                    k="Documents attached"
+                    v={draft.documents.length === 0 ? "None" : `${draft.documents.length} file${draft.documents.length === 1 ? "" : "s"}`}
+                />
                 <Row k="Login account" v={draft.createLogin ? `Yes (${draft.systemRole})` : "No"} />
                 <Row k="Invitation email" v={draft.sendInvitation ? draft.loginEmail || "Yes" : "No"} />
             </Section>

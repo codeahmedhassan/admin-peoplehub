@@ -182,7 +182,8 @@ export const TUTORIAL_CARD = {
 // ============================================================
 
 export interface Employee {
-    id: string; // empID
+    id: string; // MogoDB ObjectId
+    employeeId: string; // unique employee ID
     avatar?: string;
     branch: string;
     name: string;
@@ -198,7 +199,8 @@ export interface Employee {
 
 export const EMPLOYEES: Employee[] = [
     {
-        id: "EMP-001",
+        id: "1",
+        employeeId: "EMP-001",
         avatar:
             "https://lh3.googleusercontent.com/aida-public/AB6AXuDIMqXYs7d_-ny7f3SWsdJvZFU3zxBcgl5MGOyWJM87LEpDmp6CZT_9W431brC2YYWE-V4DAYg97f3JVCQgKcHVxHixuyhdyc6CH0v-ivqxUXnA9ISp68aDV65F9TgJwSECL2v87-KO_a8IfFJtn9BQ2HwDL_jYtoT-zQNTa4prsqqmY6aGCmerzbWtBGIZm9VCTHQtu46EVXJnvwwxnDdffVCtfTf6BMoBpWbzylnLFaQ2w_xhCjJpdA",
         branch: "New York",
@@ -212,7 +214,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Active",
     },
     {
-        id: "EMP-002",
+        id: "2",
+        employeeId: "EMP-002",
         avatar:
             "https://lh3.googleusercontent.com/aida-public/AB6AXuDVJaw-CoLcFxPMKIalXn_qutvS9vBxFaWlBAGp_OipRTfSAghwoGM7_-Dok6yf_xlD5qbPOqiX6mXpDi6fWDi5QfUnVKJ6BCGbg4MxZ_3_sifBohUbtG_z8_lSzBvUcUUr-PMP0CMPM9anJgUaZTarOMRVY_SeGzRJZVIpuu-ysxYk9vq5-L99qQxBc9olcTrlA3XVBshqDlGESHAlCJmgPPsQ3JgFoZ8R7pNmQwBci5lTh7vLX9lk2A",
         branch: "London",
@@ -226,7 +229,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Active",
     },
     {
-        id: "EMP-003",
+        id: "3",
+        employeeId: "EMP-003",
         avatar:
             "https://lh3.googleusercontent.com/aida-public/AB6AXuCDBkP6mmWCQnmuoqFChh3vALJhhvng3swOxbHlgXnd8fb4YouwwllFwibpY6jWuSsZ5KcOCqMrJnvFP5pblVx6tOiN9RF7vcCYlsBfIAPavfesvtwDLuZDj_xW0l3vwdJPm4OIa1ZQj9vM2T8DMv04V9T_6NjrtGAUo9C19ioIOZb_oQAE0nkKJV5QAY6XpU7h1MCUb3XMyk5Q8mXUlRcRRO-JeZyCf18-V6BzIcZBjyjmzC40LAh4Rw",
         branch: "Karachi",
@@ -240,7 +244,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Active",
     },
     {
-        id: "EMP-004",
+        id: "4",
+        employeeId: "EMP-004",
         branch: "Berlin",
         name: "Sofia Klein",
         email: "sofia@worknest.io",
@@ -253,7 +258,8 @@ export const EMPLOYEES: Employee[] = [
         incomplete: true, // no avatar
     },
     {
-        id: "EMP-005",
+        id: "5",
+        employeeId: "EMP-005",
         branch: "New York",
         name: "Ayesha Rahman",
         email: "ayesha@worknest.io",
@@ -265,7 +271,8 @@ export const EMPLOYEES: Employee[] = [
         status: "On Leave",
     },
     {
-        id: "EMP-006",
+        id: "6",
+        employeeId: "EMP-006",
         branch: "London",
         name: "James Carter",
         email: "james@worknest.io",
@@ -277,7 +284,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Active",
     },
     {
-        id: "EMP-007",
+        id: "7",
+        employeeId: "EMP-007",
         branch: "Karachi",
         name: "Hina Baig",
         email: "hina@worknest.io",
@@ -289,7 +297,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Probation",
     },
     {
-        id: "EMP-008",
+        id: "8",
+        employeeId: "EMP-008",
         branch: "Berlin",
         name: "Lucas Weber",
         email: "",
@@ -302,7 +311,8 @@ export const EMPLOYEES: Employee[] = [
         incomplete: true, // missing email + department
     },
     {
-        id: "EMP-009",
+        id: "9",
+        employeeId: "EMP-009",
         branch: "Karachi",
         name: "Bilal Ahmed",
         email: "bilal@worknest.io",
@@ -314,7 +324,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Active",
     },
     {
-        id: "EMP-010",
+        id: "10",
+        employeeId: "EMP-010",
         branch: "New York",
         name: "Emma Johnson",
         email: "emma@worknest.io",
@@ -326,7 +337,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Inactive",
     },
     {
-        id: "EMP-011",
+        id: "11",
+        employeeId: "EMP-011",
         branch: "London",
         name: "Oliver Smith",
         email: "oliver@worknest.io",
@@ -338,7 +350,8 @@ export const EMPLOYEES: Employee[] = [
         status: "Active",
     },
     {
-        id: "EMP-012",
+        id: "12",
+        employeeId: "EMP-012",
         branch: "Berlin",
         name: "Mia Schneider",
         email: "mia@worknest.io",
