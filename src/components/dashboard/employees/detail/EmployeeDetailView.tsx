@@ -11,6 +11,7 @@ import SalaryTab from "./SalaryTab";
 import DocumentsTab from "./DocumentsTab";
 import ActivityTab from "./ActivityTab";
 import DeleteEmployeeDialog from "./DeleteEmployeeDialog";
+import { ApiError, employeeApi } from "@/lib/api";
 
 const TABS = [
     { key: "overview", label: "Overview" },
@@ -22,10 +23,20 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-export default function EmployeeDetailView({ employee }: { employee: EmployeeDetail }) {
+export default function EmployeeDetailView({
+    employee,
+    onRefresh,
+}: {
+    employee: EmployeeDetail;
+    /** Refetch the employee from the API. Called after document uploads etc. */
+    onRefresh: () => void | Promise<void>;
+}) {
     const router = useRouter();
     const [tab, setTab] = useState<TabKey>("overview");
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
 
     return (
         <div className="flex flex-col gap-6 mb-8">
@@ -41,7 +52,7 @@ export default function EmployeeDetailView({ employee }: { employee: EmployeeDet
             <EmployeeHero
                 employee={employee}
                 onBack={() => router.back()}
-                onEdit={() => router.push(`/employees/${employee.id}/edit`)}
+                onEdit={() => router.push(`/employees/${employee.employeeId}/edit`)}
                 onDelete={() => setDeleteOpen(true)}
             />
 
@@ -70,18 +81,37 @@ export default function EmployeeDetailView({ employee }: { employee: EmployeeDet
                 {tab === "overview" && <OverviewTab employee={employee} />}
                 {tab === "employment" && <EmploymentTab employee={employee} />}
                 {tab === "salary" && <SalaryTab employee={employee} />}
-                {tab === "documents" && <DocumentsTab employee={employee} />}
+                {tab === "documents" && (
+                    <DocumentsTab employee={employee} onRefresh={onRefresh} />
+                )}
                 {tab === "activity" && <ActivityTab employee={employee} />}
             </div>
 
             <DeleteEmployeeDialog
                 open={deleteOpen}
                 employee={employee}
-                onCancel={() => setDeleteOpen(false)}
-                onConfirm={() => {
-                    // Wire to API later — simulate success
-                    setDeleteOpen(false);
-                    router.push("/employees");
+                onCancel={() => {
+                    if (!deleting) {
+                        setDeleteOpen(false);
+                        setDeleteError(null);
+                    }
+                }}
+                onConfirm={async () => {
+                    if (deleting) return;
+                    setDeleting(true);
+                    setDeleteError(null);
+                    try {
+                        await employeeApi.remove(employee.employeeId);
+                        setDeleteOpen(false);
+                        router.push("/employees");
+                    } catch (err) {
+                        setDeleting(false);
+                        setDeleteError(
+                            err instanceof ApiError
+                                ? err.message
+                                : "Failed to delete employee."
+                        );
+                    }
                 }}
             />
         </div>

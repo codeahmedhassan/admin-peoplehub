@@ -24,7 +24,6 @@ export default function EmployeeTable({
     selectedIds,
     onToggleSelect,
     onToggleSelectAll,
-    onEdit,
     onDelete,
 }: EmployeeTableProps) {
     const router = useRouter();
@@ -33,8 +32,12 @@ export default function EmployeeTable({
         employees.length > 0 && employees.every((e) => selectedIds.has(e.id));
     const someSelected = employees.some((e) => selectedIds.has(e.id));
 
-    const goToEmployee = (id: string) => {
-        router.push(`/employees/${id}`);
+    const goToEmployee = (employeeId: string) => {
+        router.push(`/employees/${employeeId}`);
+    };
+
+    const editEmployee = (emp: Employee) => {
+        router.push(`/employees/${emp.employeeId}/edit`);
     };
 
     return (
@@ -85,11 +88,11 @@ export default function EmployeeTable({
                             employees.map((emp) => (
                                 <tr
                                     key={emp.id}
-                                    onClick={() => goToEmployee(emp.id)}
+                                    onClick={() => goToEmployee(emp.employeeId)}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" || e.key === " ") {
                                             e.preventDefault();
-                                            goToEmployee(emp.id);
+                                            goToEmployee(emp.employeeId);
                                         }
                                     }}
                                     tabIndex={0}
@@ -182,7 +185,7 @@ export default function EmployeeTable({
                                     >
                                         <div className="flex items-center justify-end gap-1">
                                             <button
-                                                onClick={() => onEdit(emp)}
+                                                onClick={() => editEmployee(emp)}
                                                 aria-label={`Edit ${emp.name}`}
                                                 className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-primary transition-colors"
                                             >

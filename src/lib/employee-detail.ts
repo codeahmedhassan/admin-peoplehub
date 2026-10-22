@@ -1,24 +1,76 @@
-import { EMPLOYEES, type Employee } from "@/lib/constants";
+// lib/employee-detail.ts (admin)
+//
+// Detail-page types + mappers + formatting helpers.
+//
+// Important: there is no fake data here anymore. The detail page fetches
+// from `GET /api/v1/employees/:id` and pipes the response through
+// `mapApiEmployeeToDetail()` below.
+
+import type { Employee } from "@/lib/constants";
+import type { ApiEmployee } from "./employee-mapper";
+
+// ---------------------------------------------------------------------------
+// API shape additions
+// ---------------------------------------------------------------------------
+//
+// `GET /employees/:id` returns the same fields as the list endpoint
+// PLUS the full `documents` array (metadata only — no blobs, no encryption
+// details) and, when the caller has elevated permissions, potentially the
+// sensitive fields (bank account, tax id).
+//
+// We keep `bankAccountNumber` and `taxIdentifier` optional because the
+// current backend intentionally omits them from `toSafeJSON()`.
+// ---------------------------------------------------------------------------
+
+export type ApiDocument = {
+    fileId: string;
+    type: string;
+    label: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    uploadedAt?: string | null;
+};
+
+export type ApiEmployeeDetail = ApiEmployee & {
+    documents?: ApiDocument[];
+    // Present only if the backend later exposes them via an elevated endpoint.
+    bankAccountNumber?: string;
+    taxIdentifier?: string;
+};
+
+// ---------------------------------------------------------------------------
+// UI detail type
+// ---------------------------------------------------------------------------
+//
+// Extends the base `Employee` used by the list page. The detail page shows
+// more fields, all optional so partial records still render.
+// ---------------------------------------------------------------------------
 
 export interface EmployeeDetail extends Employee {
+    // Personal / contact
     preferredName?: string;
     phone?: string;
     gender?: string;
     personalEmail?: string;
-    dateOfBirth?: string;
+    dateOfBirth?: string | null;
     city?: string;
     country?: string;
     address?: string;
     emergencyName?: string;
     emergencyRelation?: string;
     emergencyPhone?: string;
+
+    // Employment
     employmentType?: string;
     reportingManager?: string;
-    joiningDate?: string;
+    joiningDate?: string | null;
     workLocation?: string;
-    workArrangement?: "On-site" | "Remote" | "Hybrid";
-    probationEndDate?: string;
-    contractEndDate?: string;
+    workArrangement?: string;
+    probationEndDate?: string | null;
+    contractEndDate?: string | null;
+
+    // Compensation & payroll
     currency?: string;
     payFrequency?: string;
     bankName?: string;
@@ -26,62 +78,131 @@ export interface EmployeeDetail extends Employee {
     bankAccountName?: string;
     taxIdentifier?: string;
     payrollGroup?: string;
+
+    // Account
     hasLogin?: boolean;
     systemRole?: string;
-    documents?: { id: string; label: string; uploadedAt?: string; size?: string }[];
-    activity?: { id: string; label: string; at: string; type: "created" | "updated" | "login" | "document" }[];
+
+    // Documents — flat shape, no encryption metadata exposed
+    documents?: {
+        fileId: string;
+        type: string;
+        label: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        uploadedAt?: string;
+    }[];
+
+    // Activity — placeholder until we wire real activity tracking
+    activity?: {
+        id: string;
+        label: string;
+        at: string;
+        type: "created" | "updated" | "login" | "document";
+    }[];
 }
+
+// ---------------------------------------------------------------------------
+// Mapper
+// ---------------------------------------------------------------------------
 
 /**
- * Fetch an employee by empId.
- * Looks up list data first, then overlays any extra fields
- * that the detail page needs (fallbacks below).
+ * Convert the API shape into the UI detail shape.
+ * Pure function — no side effects, no fetching.
  */
-export function getEmployeeById(id: string): EmployeeDetail | null {
-    const base = EMPLOYEES.find((e) => e.id === id);
-    if (!base) return null;
+export function mapApiEmployeeToDetail(e: ApiEmployeeDetail): EmployeeDetail {
+    const fullName =
+        [e.firstName, e.lastName].filter(Boolean).join(" ").trim() || "Unnamed";
+    const monthlySalary = Number(e.salaryAmount) || 0;
 
-    // Fallback detail fields (replace with a real API call later)
-    const extra: Partial<EmployeeDetail> = {
-        preferredName: base.name.split(" ")[0],
-        phone: "+1 555 0100",
-        personalEmail: `${base.name.toLowerCase().replace(/\s+/g, ".")}@gmail.com`,
-        dateOfBirth: "1994-06-18",
-        city: base.branch,
-        country: base.branch === "New York" ? "USA" : base.branch === "London" ? "UK" : base.branch === "Berlin" ? "Germany" : "Pakistan",
-        address: "123 Maple Street, Apt 4B",
-        emergencyName: "Alex Carter",
-        emergencyRelation: "Sibling",
-        emergencyPhone: "+1 555 0199",
-        employmentType: "Full Time",
-        reportingManager: "Sarah Jenkins (HR Director)",
-        joiningDate: "2022-03-14",
-        workLocation: base.branch,
-        workArrangement: base.branch === "Karachi" ? "On-site" : "Hybrid",
-        probationEndDate: "",
-        contractEndDate: "",
-        currency: "USD",
-        payFrequency: "Monthly",
-        bankName: "Chase Bank",
-        bankAccountName: base.name,
-        bankAccountNumber: "•••• 4821",
-        taxIdentifier: "TIN-4821-A",
-        payrollGroup: "Default",
-        hasLogin: true,
-        systemRole: "Employee",
-        documents: [
-            { id: "d1", label: "Employment Contract", uploadedAt: "2022-03-14", size: "412 KB" },
-            { id: "d2", label: "National ID", uploadedAt: "2022-03-14", size: "198 KB" },
-        ],
-        activity: [
-            { id: "a1", label: "Employee record created", at: "2022-03-14", type: "created" },
-            { id: "a2", label: "Salary updated", at: "2023-01-02", type: "updated" },
-            { id: "a3", label: "Signed in from a new device", at: "2023-05-11", type: "login" },
-        ],
+    const fullAddress = [e.residentialAddress, e.city, e.country]
+        .filter(Boolean)
+        .join(", ");
+
+    return {
+        // ---- Base Employee fields (list-page shape) ----
+        id: e.id, // Mongo _id
+        employeeId: e.employeeId, // EMP-00125 — what we show
+        name: fullName,
+        email: e.loginEmail || e.personalEmail || "",
+        avatar: e.avatar || "",
+        branch: e.workLocation || "—",
+        department: e.department || "",
+        designation: e.designation || "",
+
+        basicSalary: monthlySalary,
+        grossSalary: monthlySalary,
+        netSalary: monthlySalary,
+
+        status: normalizeStatus(e.employmentStatus),
+        incomplete:
+            !e.department ||
+            !e.designation ||
+            !e.phone ||
+            !e.joiningDate,
+
+        // ---- Detail-only fields ----
+        preferredName: e.preferredName || "",
+        phone: e.phone || "",
+        gender: e.gender || "",
+        personalEmail: e.personalEmail || "",
+        dateOfBirth: e.dateOfBirth ?? null,
+        city: e.city || "",
+        country: e.country || "",
+        address: fullAddress,
+        emergencyName: e.emergencyName || "",
+        emergencyRelation: e.emergencyRelation || "",
+        emergencyPhone: e.emergencyPhone || "",
+
+        employmentType: e.employmentType || "",
+        reportingManager: e.reportingManager || "",
+        joiningDate: e.joiningDate ?? null,
+        workLocation: e.workLocation || "",
+        workArrangement: e.workArrangement || "",
+        probationEndDate: e.probationEndDate ?? null,
+        contractEndDate: e.contractEndDate ?? null,
+
+        currency: e.salaryCurrency || "USD",
+        payFrequency: e.payFrequency || "",
+        bankName: e.bankName || "",
+        bankAccountNumber: e.bankAccountNumber || "",
+        bankAccountName: e.bankAccountName || "",
+        taxIdentifier: e.taxIdentifier || "",
+        payrollGroup: e.payrollGroup || "",
+
+        hasLogin: Boolean(e.createLogin),
+        systemRole: e.systemRole || "",
+
+        documents: (e.documents ?? []).map((d) => ({
+            fileId: d.fileId,
+            type: d.type,
+            label: d.label,
+            fileName: d.fileName,
+            fileSize: d.fileSize,
+            mimeType: d.mimeType,
+            uploadedAt: d.uploadedAt ?? undefined,
+        })),
+
+        activity: [], // wired later
     };
-
-    return { ...base, ...extra };
 }
+
+function normalizeStatus(s: string): Employee["status"] {
+    switch (s) {
+        case "Active":
+        case "On Leave":
+        case "Probation":
+        case "Inactive":
+            return s;
+        default:
+            return "Active";
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Formatting helpers (unchanged API surface)
+// ---------------------------------------------------------------------------
 
 export function getInitials(name: string): string {
     return name
@@ -93,11 +214,14 @@ export function getInitials(name: string): string {
         .toUpperCase();
 }
 
-export function getTenure(joiningDate?: string): string {
+export function getTenure(joiningDate?: string | null): string {
     if (!joiningDate) return "—";
     const start = new Date(joiningDate);
+    if (isNaN(start.getTime())) return "—";
     const now = new Date();
-    let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    let months =
+        (now.getFullYear() - start.getFullYear()) * 12 +
+        (now.getMonth() - start.getMonth());
     if (now.getDate() < start.getDate()) months -= 1;
     if (months < 1) return "Less than a month";
     const years = Math.floor(months / 12);
@@ -107,11 +231,15 @@ export function getTenure(joiningDate?: string): string {
     return `${years}y ${rem}m`;
 }
 
-export function formatDate(iso?: string): string {
+export function formatDate(iso?: string | null): string {
     if (!iso) return "—";
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    return d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
 }
 
 export function formatMoney(amount: number, currency = "USD"): string {

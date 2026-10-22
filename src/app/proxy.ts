@@ -58,6 +58,7 @@ export async function proxy(req: NextRequest) {
     ) {
         return NextResponse.next();
     }
+    const matcher = ["/((?!_next/static|_next/image|favicon.ico).*)"];
 
     const cookieHeader = req.headers.get("cookie") || "";
     const session = await getSessionState(cookieHeader);

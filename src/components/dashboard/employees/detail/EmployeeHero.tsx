@@ -75,7 +75,7 @@ export default function EmployeeHero({
                         </p>
 
                         <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-medium flex-wrap">
-                            <span className="tabular-nums">{employee.id}</span>
+                            <span className="tabular-nums">{employee.employeeId}</span>
                             <span className="w-1 h-1 rounded-full bg-slate-300" />
                             <span>{employee.branch}</span>
                             <span className="w-1 h-1 rounded-full bg-slate-300" />

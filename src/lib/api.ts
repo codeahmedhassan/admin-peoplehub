@@ -123,6 +123,86 @@ export const employeeApi = {
             { method: "GET" }
         ),
 
-    remove: (id: string) =>
-        apiFetch<null>(`/employees/${id}`, { method: "DELETE" }),
+    get: (idOrEmployeeId: string) =>
+        apiFetch<{ employee: import("./employee-mapper").ApiEmployee }>(
+            `/employees/${encodeURIComponent(idOrEmployeeId)}`,
+            { method: "GET" }
+        ),
+
+    update: (
+        idOrEmployeeId: string,
+        patch: Record<string, unknown>
+    ) =>
+        apiFetch<{
+            employee: import("./employee-mapper").ApiEmployee;
+            removedDocumentCount: number;
+        }>(`/employees/${encodeURIComponent(idOrEmployeeId)}`, {
+            method: "PATCH",
+            body: patch,
+        }),
+
+    remove: (idOrEmployeeId: string) =>
+        apiFetch<null>(`/employees/${encodeURIComponent(idOrEmployeeId)}`, {
+            method: "DELETE",
+        }),
+
+    /**
+     * Upload new documents to an existing employee.
+     * Returns the updated employee record (with the new documents appended).
+     */
+    addDocuments: async (
+        idOrEmployeeId: string,
+        files: File[],
+        fileMeta: { fileId: string; type: string; label: string }[]
+    ) => {
+        if (files.length === 0) {
+            throw new ApiError(400, "No files selected");
+        }
+        if (files.length !== fileMeta.length) {
+            throw new ApiError(
+                400,
+                `Internal error: ${files.length} file(s) but ${fileMeta.length} metadata entries.`
+            );
+        }
+
+        const formData = new FormData();
+        // parseMultipartBody middleware expects `data` (may be {} for this route)
+        // and `fileMeta` (array). We send both.
+        formData.append("data", JSON.stringify({}));
+        formData.append("fileMeta", JSON.stringify(fileMeta));
+        for (const f of files) {
+            formData.append("files", f);
+        }
+
+        const res = await fetch(
+            `${API_BASE_URL}/employees/${encodeURIComponent(idOrEmployeeId)}/documents`,
+            {
+                method: "POST",
+                credentials: "include",
+                body: formData,
+            }
+        );
+
+        let body: any = null;
+        const text = await res.text();
+        if (text) {
+            try {
+                body = JSON.parse(text);
+            } catch {
+                body = { message: text };
+            }
+        }
+
+        if (!res.ok) {
+            throw new ApiError(
+                res.status,
+                body?.message || `Request failed (${res.status})`
+            );
+        }
+
+        return (body?.data ?? body) as {
+            employee: import("./employee-mapper").ApiEmployee;
+            addedCount: number;
+        };
+    },
 };

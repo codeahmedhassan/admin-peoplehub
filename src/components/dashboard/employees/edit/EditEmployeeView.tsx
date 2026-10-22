@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { type EmployeeDetail, getInitials } from "@/lib/employee-detail";
+import { employeeApi, ApiError } from "@/lib/api";
 import {
     toEditable,
     diffEditable,
@@ -37,6 +38,8 @@ export default function EditEmployeeView({ employee }: { employee: EmployeeDetai
     const [tab, setTab] = useState<TabKey>("personal");
     const [discardOpen, setDiscardOpen] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     const dirty = useMemo(
         () => Object.keys(diffEditable(original, form)).length > 0,
@@ -66,11 +69,12 @@ export default function EditEmployeeView({ employee }: { employee: EmployeeDetai
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (saving) return;
+
         const fieldErrors = validateEdit(form);
         if (Object.keys(fieldErrors).length > 0) {
             setErrors(fieldErrors);
-            // Jump to the tab that has the first error
             if (
                 fieldErrors.firstName ||
                 fieldErrors.lastName ||
@@ -87,18 +91,81 @@ export default function EditEmployeeView({ employee }: { employee: EmployeeDetai
             return;
         }
 
-        console.log("Saving changes:", diffEditable(original, form));
-        setSaved(true);
-        setTimeout(() => {
-            router.push(`/employees/${employee.id}`);
-        }, 600);
+        setSaveError(null);
+        setSaving(true);
+
+        try {
+            // ----- 1) Compute the field patch (JSON body) -----
+            const diff = diffEditable(original, form);
+            const {
+                documents: diffDocuments,
+                ...fieldDiff
+            } = diff as typeof diff & { documents?: EditableEmployee["documents"] };
+
+            // ----- 2) Split documents into "removed" and "new" -----
+            const removedDocumentIds =
+                (form.documents ?? [])
+                    .filter((d) => d.isRemoved && d.fileId)
+                    .map((d) => d.fileId!) ?? [];
+
+            const newDocuments = (form.documents ?? []).filter(
+                (d) => d.isNew && d.pendingFile
+            );
+
+            // ----- 3) Send PATCH if any field or removal changed -----
+            const needsPatch =
+                Object.keys(fieldDiff).length > 0 || removedDocumentIds.length > 0;
+
+            if (needsPatch) {
+                await employeeApi.update(employee.employeeId, {
+                    ...fieldDiff,
+                    ...(removedDocumentIds.length > 0
+                        ? { removedDocumentIds }
+                        : {}),
+                });
+            }
+
+            // ----- 4) Upload new documents (one request, batched) -----
+            if (newDocuments.length > 0) {
+                const files: File[] = [];
+                const fileMeta: { fileId: string; type: string; label: string }[] = [];
+                for (const d of newDocuments) {
+                    if (!d.pendingFile) continue;
+                    files.push(d.pendingFile);
+                    fileMeta.push({
+                        fileId: d.id,           // unique per new doc
+                        type: d.label,          // label doubles as type — OK
+                        label: d.label,
+                    });
+                }
+                if (files.length > 0) {
+                    await employeeApi.addDocuments(
+                        employee.employeeId,
+                        files,
+                        fileMeta
+                    );
+                }
+            }
+
+            setSaved(true);
+            setTimeout(() => {
+                router.push(`/employees/${employee.employeeId}`);
+            }, 600);
+        } catch (err) {
+            setSaving(false);
+            setSaveError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Failed to save changes. Please try again."
+            );
+        }
     };
 
     const handleCancel = () => {
         if (dirty) {
             setDiscardOpen(true);
         } else {
-            router.push(`/employees/${employee.id}`);
+            router.push(`/employees/${employee.employeeId}`);
         }
     };
 
@@ -115,7 +182,7 @@ export default function EditEmployeeView({ employee }: { employee: EmployeeDetai
                 <span>/</span>
                 <Link href="/employees" className="hover:text-slate-700 transition-colors">Employees</Link>
                 <span>/</span>
-                <Link href={`/employees/${employee.id}`} className="hover:text-slate-700 transition-colors truncate">
+                <Link href={`/employees/${employee.employeeId}`} className="hover:text-slate-700 transition-colors truncate">
                     {employee.name}
                 </Link>
                 <span>/</span>
@@ -139,7 +206,7 @@ export default function EditEmployeeView({ employee }: { employee: EmployeeDetai
                     )}
                     <div>
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            Editing · {employee.id}
+                            Editing · {employee.employeeId}
                         </p>
                         <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                             {employee.name}
@@ -225,10 +292,23 @@ export default function EditEmployeeView({ employee }: { employee: EmployeeDetai
                 )}
             </div>
 
+            {saveError && (
+                <div
+                    role="alert"
+                    className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-2rem)] max-w-2xl flex items-start gap-2 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs px-4 py-3 shadow-lg"
+                >
+                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                    </svg>
+                    <span>{saveError}</span>
+                </div>
+            )}
+
             {/* Sticky save bar */}
             <SaveBar
                 dirty={dirty}
                 saved={saved}
+                saving={saving}
                 onSave={handleSave}
                 onCancel={handleCancel}
             />
@@ -239,7 +319,7 @@ export default function EditEmployeeView({ employee }: { employee: EmployeeDetai
                 onCancel={() => setDiscardOpen(false)}
                 onConfirm={() => {
                     setDiscardOpen(false);
-                    router.push(`/employees/${employee.id}`);
+                    router.push(`/employees/${employee.employeeId}`);
                 }}
             />
         </div>

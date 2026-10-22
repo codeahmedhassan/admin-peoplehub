@@ -13,14 +13,33 @@ import {
     SYSTEM_ROLES,
 } from "@/lib/employee-form";
 
+function formatBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export interface EditableDocument {
-    id: string;          // stable id (uuid or temp id)
-    label: string;       // e.g. "Employment Contract"
-    fileName: string;    // uploaded file name
-    fileSize: string;    // "412 KB"
-    uploadedAt: string;  // ISO date
-    isNew?: boolean;     // just uploaded in this session
-    isRemoved?: boolean; // marked for removal (soft-delete)
+    /** Temp id used only for React keys and internal diffing. */
+    id: string;
+
+    /**
+     * Real backend fileId. Present for existing docs, absent for new uploads
+     * that haven't been sent yet.
+     */
+    fileId?: string;
+
+    label: string;
+    fileName: string;
+    fileSize: string;
+    uploadedAt: string;
+
+    /** The File object, only present for newly added docs (not yet uploaded). */
+    pendingFile?: File;
+
+    isNew?: boolean;
+    isRemoved?: boolean;
 }
 
 // ---------- Editable subset of the detail record ----------
@@ -122,11 +141,14 @@ export function toEditable(emp: EmployeeDetail): EditableEmployee {
         systemRole: emp.systemRole ?? "Employee",
 
         documents: (emp.documents ?? []).map((d) => ({
-            id: d.id,
+            id: d.fileId,          // stable per API fileId
+            fileId: d.fileId,
             label: d.label,
-            fileName: d.id + ".pdf", // fallback — replace with real field
-            fileSize: d.size ?? "—",
-            uploadedAt: d.uploadedAt ?? new Date().toISOString().slice(0, 10),
+            fileName: d.fileName,
+            fileSize: formatBytes(d.fileSize),
+            uploadedAt: d.uploadedAt
+                ? d.uploadedAt.slice(0, 10)
+                : new Date().toISOString().slice(0, 10),
         })),
     };
 }

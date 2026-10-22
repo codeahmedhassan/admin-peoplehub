@@ -280,12 +280,13 @@ function UploadDocumentModal({
             return;
         }
         onAdd({
-            id: `new-${Date.now()}`,
+            id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             label: effectiveLabel,
             fileName: file.name,
             fileSize: formatBytes(file.size),
             uploadedAt: new Date().toISOString().slice(0, 10),
             isNew: true,
+            pendingFile: file,      // <-- keep bytes
         });
     };
 
