@@ -1,32 +1,66 @@
 // ============================================================
-// ATTENDANCE — data, types, and helpers
+// ATTENDANCE — types, status meta, formatters, and API types
 // ============================================================
-
-import { EMPLOYEES, type Employee } from "@/lib/constants";
 
 export type AttendanceStatus =
     | "Present"
     | "Late"
-    | "Absent"
-    | "On Leave"
     | "Remote"
-    | "Half Day";
+    | "Half Day"
+    | "On Leave"
+    | "Absent"
+    | "Holiday"
+    | "Weekend"
+    | "Unmarked";
 
 export interface AttendanceRecord {
-    id: string;                 // att-EMP-001-2024-03-12
+    /** Mongo _id, or `null` for a "today-unmarked" row with no record yet. */
+    id: string | null;
+
+    /** Human-readable employee ID (EMP-00125). */
     employeeId: string;
+
+    /** Mongo _id of the employee — useful if you need to link deeper. */
+    employeeObjectId: string;
+
     employeeName: string;
     avatar?: string;
     department: string;
     branch: string;
-    date: string;               // YYYY-MM-DD
-    clockIn?: string;           // "09:02"
-    clockOut?: string;          // "18:14"
-    hoursWorked?: number;       // 8.2
+
+    date: string; // YYYY-MM-DD
+    clockIn?: string;  // "09:02" (derived from checkIn ISO)
+    clockOut?: string; // "18:14" (derived from checkOut ISO)
+    hoursWorked?: number;
+
     status: AttendanceStatus;
+    source?: "manual" | "device" | "auto" | "import" | null;
     note?: string;
+
+    /** If device marked present earlier and admin overrode to absent. */
+    deviceMarkedPresent?: boolean;
+    deviceMarkedAt?: string | null;
+
+    /** Who last touched this row manually. */
+    markedBy?: { id: string; fullName: string } | null;
 }
 
+/**
+ * The statuses the admin can choose when marking manually.
+ * Weekend and Holiday are set by rollup, not manually.
+ */
+export const MANUAL_ATTENDANCE_STATUSES = [
+    "Present",
+    "Late",
+    "Remote",
+    "Half Day",
+    "On Leave",
+    "Absent",
+] as const;
+
+export type ManualAttendanceStatus = (typeof MANUAL_ATTENDANCE_STATUSES)[number];
+
+/** All statuses, in display order. */
 export const ATTENDANCE_STATUSES: AttendanceStatus[] = [
     "Present",
     "Late",
@@ -34,6 +68,9 @@ export const ATTENDANCE_STATUSES: AttendanceStatus[] = [
     "Half Day",
     "On Leave",
     "Absent",
+    "Holiday",
+    "Weekend",
+    "Unmarked",
 ];
 
 export const STATUS_META: Record<
@@ -46,9 +83,12 @@ export const STATUS_META: Record<
     "Half Day": { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500" },
     "On Leave": { bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-500" },
     Absent: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-500" },
+    Holiday: { bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-500" },
+    Weekend: { bg: "bg-slate-100", text: "text-slate-600", dot: "bg-slate-400" },
+    Unmarked: { bg: "bg-slate-100", text: "text-slate-500", dot: "bg-slate-300" },
 };
 
-// ---------- Date helpers ----------
+// ---------- Date / time helpers ----------
 export function todayIso(): string {
     return new Date().toISOString().slice(0, 10);
 }
@@ -70,89 +110,19 @@ export function formatTime(t?: string): string {
     return `${hh}:${String(m).padStart(2, "0")} ${suffix}`;
 }
 
-// ---------- Deterministic pseudo-random generator ----------
-// Same seed → same record every time, so the demo feels stable.
-function seededRandom(seed: string): number {
-    let hash = 2166136261;
-    for (let i = 0; i < seed.length; i++) {
-        hash ^= seed.charCodeAt(i);
-        hash = (hash * 16777619) >>> 0;
-    }
-    return hash / 0xffffffff;
-}
-
 /**
- * Generate a deterministic attendance record for an employee on a given date.
- * Replace this with a real API call later — the UI consumes this shape 1:1.
+ * Convert an ISO datetime (UTC) to "HH:MM" in the browser's local timezone.
  */
-export function getAttendanceFor(
-    employee: Employee,
-    dateIso: string
-): AttendanceRecord {
-    const seed = `${employee.id}-${dateIso}`;
-    const r = seededRandom(seed);
-    const id = `att-${employee.id}-${dateIso}`;
-
-    // 4% absent, 8% on leave, 6% half-day, 12% late, 20% remote, rest present
-    let status: AttendanceStatus = "Present";
-    if (r < 0.04) status = "Absent";
-    else if (r < 0.12) status = "On Leave";
-    else if (r < 0.18) status = "Half Day";
-    else if (r < 0.30) status = "Late";
-    else if (r < 0.50) status = "Remote";
-
-    // Times
-    const baseIn = status === "Late" ? 9.25 + r * 0.75 : 8.75 + r * 0.5;
-    const hours =
-        status === "Absent" || status === "On Leave"
-            ? 0
-            : status === "Half Day"
-                ? 4 + r * 0.5
-                : 7.5 + r * 1.2;
-    const inH = Math.floor(baseIn);
-    const inM = Math.round((baseIn - inH) * 60);
-    const outDecimal = baseIn + hours;
-    const outH = Math.floor(outDecimal);
-    const outM = Math.round((outDecimal - outH) * 60);
-
-    return {
-        id,
-        employeeId: employee.id,
-        employeeName: employee.name,
-        avatar: employee.avatar,
-        department: employee.department,
-        branch: employee.branch,
-        date: dateIso,
-        clockIn:
-            status === "Absent" || status === "On Leave"
-                ? undefined
-                : `${String(inH).padStart(2, "0")}:${String(inM).padStart(2, "0")}`,
-        clockOut:
-            status === "Absent" || status === "On Leave"
-                ? undefined
-                : `${String(outH).padStart(2, "0")}:${String(outM).padStart(2, "0")}`,
-        hoursWorked: hours > 0 ? Number(hours.toFixed(2)) : undefined,
-        status,
-    };
+export function isoToLocalHHMM(iso?: string | null): string | undefined {
+    if (!iso) return undefined;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return undefined;
+    const h = d.getHours();
+    const m = d.getMinutes();
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function getAllAttendance(dateIso: string): AttendanceRecord[] {
-    return EMPLOYEES.map((e) => getAttendanceFor(e, dateIso));
-}
-
-export function getWeeklyAttendance(endIso: string): AttendanceRecord[] {
-    const out: AttendanceRecord[] = [];
-    const end = new Date(endIso + "T00:00:00");
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(end);
-        d.setDate(d.getDate() - i);
-        const iso = d.toISOString().slice(0, 10);
-        out.push(...getAllAttendance(iso));
-    }
-    return out;
-}
-
-// ---------- Aggregates ----------
+// ---------- Aggregates (unchanged shape — feeding the summary cards) ----------
 export interface AttendanceSummary {
     total: number;
     present: number;
@@ -161,31 +131,35 @@ export interface AttendanceSummary {
     onLeave: number;
     remote: number;
     halfDay: number;
-    attendanceRate: number;    // 0–100
+    holiday: number;
+    weekend: number;
+    unmarked: number;
+    attendanceRate: number;
     avgHours: number;
 }
 
 export function summarize(records: AttendanceRecord[]): AttendanceSummary {
     const total = records.length;
-    const counts = records.reduce(
-        (acc, r) => {
-            acc[r.status] = (acc[r.status] ?? 0) + 1;
-            return acc;
-        },
-        {} as Record<string, number>
-    );
+    const counts: Record<string, number> = {};
+    for (const r of records) counts[r.status] = (counts[r.status] ?? 0) + 1;
+
     const present = counts.Present ?? 0;
     const late = counts.Late ?? 0;
     const absent = counts.Absent ?? 0;
     const onLeave = counts["On Leave"] ?? 0;
     const remote = counts.Remote ?? 0;
     const halfDay = counts["Half Day"] ?? 0;
+    const holiday = counts.Holiday ?? 0;
+    const weekend = counts.Weekend ?? 0;
+    const unmarked = counts.Unmarked ?? 0;
 
+    // Attendance rate = attended / countable. Weekend + Holiday + Unmarked
+    // are excluded from the denominator — they aren't "missed" days.
+    const countable = total - holiday - weekend - unmarked;
     const attended = present + late + remote + halfDay * 0.5;
-    const attendanceRate = total > 0 ? (attended / total) * 100 : 0;
-    const hours = records
-        .map((r) => r.hoursWorked ?? 0)
-        .filter((h) => h > 0);
+    const attendanceRate = countable > 0 ? (attended / countable) * 100 : 0;
+
+    const hours = records.map((r) => r.hoursWorked ?? 0).filter((h) => h > 0);
     const avgHours =
         hours.length > 0 ? hours.reduce((a, b) => a + b, 0) / hours.length : 0;
 
@@ -197,6 +171,9 @@ export function summarize(records: AttendanceRecord[]): AttendanceSummary {
         onLeave,
         remote,
         halfDay,
+        holiday,
+        weekend,
+        unmarked,
         attendanceRate: Number(attendanceRate.toFixed(1)),
         avgHours: Number(avgHours.toFixed(1)),
     };

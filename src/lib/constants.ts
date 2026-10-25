@@ -21,8 +21,15 @@ export const MENU_ITEMS: NavItem[] = [
 export const PROFILE_SUB_ITEMS: NavItem[] = [
     { label: "Employees", href: "/employees", icon: "add" },
     { label: "Attendance", href: "/attendance", icon: "attendance" },
-    { label: "Performance", href: "/performance", icon: "performance" },
+    { label: "Payroll", href: "/payroll", icon: "payroll" },
     { label: "Time-off", href: "/time-off", icon: "timeoff" },
+];
+
+export const SETTINGS_SUB_ITEMS: NavItem[] = [
+  { label: "Devices", href: "/settings/devices", icon: "devices" },
+  // add more here later:
+  // { label: "Notifications", href: "/settings/notifications", icon: "bell" },
+  // { label: "Billing", href: "/settings/billing", icon: "credit-card" },
 ];
 
 // A route is "profile-active" if the current path starts with any of these

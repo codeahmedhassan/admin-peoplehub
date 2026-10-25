@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -9,6 +9,7 @@ import {
     CURRENT_USER,
     MENU_ITEMS,
     PROFILE_SUB_ITEMS,
+    SETTINGS_SUB_ITEMS,
 } from "@/lib/constants";
 import SidebarIcon from "./SidebarIcon";
 import { useSidebar } from "./SidebarContext";
@@ -26,20 +27,73 @@ function isAnyRouteActive(pathname: string, hrefs: string[]): boolean {
 export default function Sidebar() {
     const { collapsed, mobileOpen, toggleCollapsed, closeMobile } = useSidebar();
     const pathname = usePathname();
+    const router = useRouter();
 
     const profileRoutes = PROFILE_SUB_ITEMS.map((item) => item.href);
     const profileGroupActive = isAnyRouteActive(pathname, profileRoutes);
 
-    // Dropdown open state — initialized to open if a profile route is active
+    // Nav dropdown
     const [profileOpen, setProfileOpen] = useState<boolean>(profileGroupActive);
-
-    // Auto-open the group whenever the user navigates into one of its routes
     useEffect(() => {
         if (profileGroupActive) setProfileOpen(true);
     }, [profileGroupActive]);
-
-    // When sidebar is collapsed (desktop), force group closed visually
     const subItemsVisible = profileOpen && !collapsed;
+
+    // ============================================================
+    // User menu (Settings + Logout)
+    // ============================================================
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [settingsExpanded, setSettingsExpanded] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement | null>(null);
+
+    const settingsRouteActive = isAnyRouteActive(
+        pathname,
+        SETTINGS_SUB_ITEMS.map((s) => s.href)
+    );
+
+    // Close on outside click
+    useEffect(() => {
+        if (!userMenuOpen) return;
+        const handle = (e: MouseEvent) => {
+            if (
+                userMenuRef.current &&
+                !userMenuRef.current.contains(e.target as Node)
+            ) {
+                setUserMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handle);
+        return () => document.removeEventListener("mousedown", handle);
+    }, [userMenuOpen]);
+
+    // Close on Escape
+    useEffect(() => {
+        if (!userMenuOpen) return;
+        const handle = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setUserMenuOpen(false);
+        };
+        document.addEventListener("keydown", handle);
+        return () => document.removeEventListener("keydown", handle);
+    }, [userMenuOpen]);
+
+    // Close user menu whenever route changes
+    useEffect(() => {
+        setUserMenuOpen(false);
+        setSettingsExpanded(false);
+    }, [pathname]);
+
+    // Auto-expand settings if we land on a settings route
+    useEffect(() => {
+        if (settingsRouteActive) setSettingsExpanded(true);
+    }, [settingsRouteActive]);
+
+    const handleLogout = () => {
+        setUserMenuOpen(false);
+        // Replace with your auth sign-out call
+        // eslint-disable-next-line no-console
+        console.log("Logout");
+        router.push("/login");
+    };
 
     return (
         <>
@@ -193,7 +247,6 @@ export default function Sidebar() {
                                 MENU
                             </span>
 
-                            {/* ---------- Dashboard (single link) ---------- */}
                             <NavLink
                                 href="/"
                                 icon="dashboard"
@@ -202,7 +255,7 @@ export default function Sidebar() {
                                 active={isRouteActive(pathname, "/")}
                             />
 
-                            {/* ---------- Profile Group ---------- */}
+                            {/* Profile Group */}
                             <div
                                 className={[
                                     "mt-1 relative flex flex-col text-white shadow-lg transition-all duration-300 ease-out will-change-[border-radius,padding]",
@@ -214,7 +267,6 @@ export default function Sidebar() {
                                         : "lg:rounded-2xl lg:p-1 p-1 rounded-2xl",
                                 ].join(" ")}
                             >
-                                {/* Header — clickable to toggle dropdown */}
                                 <button
                                     type="button"
                                     onClick={() => setProfileOpen((v) => !v)}
@@ -258,7 +310,6 @@ export default function Sidebar() {
                                         </span>
                                     </div>
 
-                                    {/* Chevron — rotates with open state */}
                                     <svg
                                         className={[
                                             "w-4 h-4 text-white/80 transition-all duration-300 shrink-0 overflow-hidden",
@@ -280,7 +331,6 @@ export default function Sidebar() {
                                     </svg>
                                 </button>
 
-                                {/* Sub-items — collapse via max-height + opacity */}
                                 <div
                                     className={[
                                         "flex flex-col gap-0.5 text-white/80 text-[13px] font-medium transition-all duration-300 overflow-hidden",
@@ -311,7 +361,7 @@ export default function Sidebar() {
                                 </div>
                             </div>
 
-                            {/* ---------- Remaining single links ---------- */}
+                            {/* Remaining single links */}
                             {MENU_ITEMS.slice(1).map((item) => (
                                 <NavLink
                                     key={item.label}
@@ -325,65 +375,187 @@ export default function Sidebar() {
                         </nav>
                     </div>
 
-                    {/* ================= Bottom user card ================= */}
-                    <div
-                        className={[
-                            "relative bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm cursor-pointer hover:bg-white transition-all duration-300 flex items-center",
-                            collapsed
-                                ? "lg:justify-center lg:p-2 p-2.5 justify-between"
-                                : "p-2.5 justify-between",
-                        ].join(" ")}
-                    >
-                        <div
-                            className={[
-                                "flex items-center overflow-hidden min-w-0 transition-all duration-300",
-                                collapsed
-                                    ? "lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-0 gap-2.5"
-                                    : "gap-2.5",
-                            ].join(" ")}
-                        >
-                            <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0 bg-amber-100 border border-slate-200">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    alt={CURRENT_USER.name}
-                                    className="w-full h-full object-cover"
-                                    src={CURRENT_USER.avatar}
-                                />
-                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
-                            </div>
+                    {/* ============================================================
+                        Bottom user card — opens upward dropdown
+                        ============================================================ */}
+                    <div ref={userMenuRef} className="relative">
+                        {/* Upward dropdown */}
+                        {userMenuOpen && (
                             <div
+                                role="menu"
                                 className={[
-                                    "flex flex-col truncate transition-all duration-300 overflow-hidden",
-                                    collapsed
-                                        ? "lg:max-w-0 lg:opacity-0"
-                                        : "max-w-35 opacity-100",
+                                    "absolute bottom-full left-0 mb-2 z-50",
+                                    "bg-white rounded-2xl border border-slate-200/80 shadow-2xl shadow-slate-900/10",
+                                    "overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200",
+                                    collapsed ? "w-60" : "w-full",
                                 ].join(" ")}
                             >
-                                <span className="text-xs font-bold text-slate-900 leading-tight truncate">
-                                    {CURRENT_USER.name}
-                                </span>
-                                <span className="text-[11px] text-slate-400 font-medium truncate">
-                                    {CURRENT_USER.email}
-                                </span>
-                            </div>
-                        </div>
+                                {/* Settings group */}
+                                <div className="p-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSettingsExpanded((v) => !v)}
+                                        aria-expanded={settingsExpanded}
+                                        className={[
+                                            "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold transition-colors",
+                                            settingsRouteActive
+                                                ? "bg-primary-50 text-primary"
+                                                : "text-slate-700 hover:bg-slate-50",
+                                        ].join(" ")}
+                                    >
+                                        <span className="flex items-center gap-2.5">
+                                            <span
+                                                className={[
+                                                    "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+                                                    settingsRouteActive
+                                                        ? "bg-primary/10 text-primary"
+                                                        : "bg-slate-100 text-slate-500",
+                                                ].join(" ")}
+                                            >
+                                                <SidebarIcon name="settings" className="w-3.5 h-3.5" />
+                                            </span>
+                                            Settings
+                                        </span>
+                                        <svg
+                                            className={[
+                                                "w-3.5 h-3.5 text-slate-400 transition-transform duration-200",
+                                                settingsExpanded ? "rotate-0" : "rotate-180",
+                                            ].join(" ")}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth={2.5}
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                d="M19 9l-7 7-7-7"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
+                                    </button>
 
-                        <svg
+                                    {/* Settings sub-items */}
+                                    <div
+                                        className={[
+                                            "flex flex-col gap-0.5 overflow-hidden transition-all duration-300",
+                                            settingsExpanded
+                                                ? "max-h-60 opacity-100 mt-0.5"
+                                                : "max-h-0 opacity-0",
+                                        ].join(" ")}
+                                    >
+                                        {SETTINGS_SUB_ITEMS.map((item) => {
+                                            const active = isRouteActive(pathname, item.href);
+                                            return (
+                                                <Link
+                                                    key={item.label}
+                                                    href={item.href}
+                                                    onClick={() => setUserMenuOpen(false)}
+                                                    className={[
+                                                        "flex items-center gap-2.5 pl-10 pr-3 py-1.5 rounded-lg text-xs transition-colors",
+                                                        active
+                                                            ? "bg-primary-50 text-primary font-semibold"
+                                                            : "text-slate-600 hover:bg-slate-50 font-medium",
+                                                    ].join(" ")}
+                                                >
+                                                    <SidebarIcon
+                                                        name={item.icon}
+                                                        className={[
+                                                            "w-3.5 h-3.5 shrink-0",
+                                                            active ? "text-primary" : "text-slate-400",
+                                                        ].join(" ")}
+                                                    />
+                                                    {item.label}
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-slate-100" />
+
+                                {/* Logout */}
+                                <div className="p-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                                    >
+                                        <span className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                                            <SidebarIcon name="logout" className="w-3.5 h-3.5" />
+                                        </span>
+                                        Log out
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* User card — clickable trigger */}
+                        <button
+                            type="button"
+                            onClick={() => setUserMenuOpen((v) => !v)}
+                            aria-haspopup="menu"
+                            aria-expanded={userMenuOpen}
                             className={[
-                                "w-4 h-4 text-slate-400 shrink-0 transition-all duration-300",
-                                collapsed ? "lg:max-w-0 lg:opacity-0 ml-0" : "ml-1",
+                                "relative w-full bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm hover:bg-white transition-all duration-300 flex items-center",
+                                userMenuOpen && "ring-2 ring-primary/20",
+                                collapsed
+                                    ? "lg:justify-center lg:p-2 p-2.5 justify-between"
+                                    : "p-2.5 justify-between",
                             ].join(" ")}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
                         >
-                            <path
-                                d="M9 5l7 7-7 7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                            />
-                        </svg>
+                            <div
+                                className={[
+                                    "flex items-center overflow-hidden min-w-0 transition-all duration-300",
+                                    collapsed
+                                        ? "lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-0 gap-2.5"
+                                        : "gap-2.5",
+                                ].join(" ")}
+                            >
+                                <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0 bg-amber-100 border border-slate-200">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        alt={CURRENT_USER.name}
+                                        className="w-full h-full object-cover"
+                                        src={CURRENT_USER.avatar}
+                                    />
+                                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
+                                </div>
+                                <div
+                                    className={[
+                                        "flex flex-col truncate transition-all duration-300 overflow-hidden text-left",
+                                        collapsed
+                                            ? "lg:max-w-0 lg:opacity-0"
+                                            : "max-w-35 opacity-100",
+                                    ].join(" ")}
+                                >
+                                    <span className="text-xs font-bold text-slate-900 leading-tight truncate">
+                                        {CURRENT_USER.name}
+                                    </span>
+                                    <span className="text-[11px] text-slate-400 font-medium truncate">
+                                        {CURRENT_USER.email}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Chevron — flips up when menu is open */}
+                            <svg
+                                className={[
+                                    "w-4 h-4 text-slate-400 shrink-0 transition-all duration-300",
+                                    collapsed ? "lg:max-w-0 lg:opacity-0 ml-0" : "ml-1",
+                                    userMenuOpen ? "-rotate-90" : "rotate-90",
+                                ].join(" ")}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    d="M9 5l7 7-7 7"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </aside>

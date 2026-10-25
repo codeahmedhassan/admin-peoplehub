@@ -29,6 +29,8 @@ export default function AttendanceWeekChart({ records }: Props) {
             else if (r.status === "Absent") bucket.absent++;
             else if (r.status === "On Leave") bucket.leave++;
             else if (r.status === "Half Day") bucket.present += 0.5;
+            // Holiday / Weekend / Unmarked are excluded from the chart — they aren't
+            // a reflection of someone's behavior.
             map.set(r.date, bucket);
         }
 

@@ -8,7 +8,10 @@ export default function AttendanceBreakdown({ summary }: { summary: AttendanceSu
         { label: "Half Day", value: summary.halfDay, meta: STATUS_META["Half Day"] },
         { label: "On Leave", value: summary.onLeave, meta: STATUS_META["On Leave"] },
         { label: "Absent", value: summary.absent, meta: STATUS_META.Absent },
-    ];
+        { label: "Holiday", value: summary.holiday, meta: STATUS_META.Holiday },
+        { label: "Weekend", value: summary.weekend, meta: STATUS_META.Weekend },
+        { label: "Unmarked", value: summary.unmarked, meta: STATUS_META.Unmarked },
+    ].filter((r) => r.value > 0);
 
     return (
         <div className="h-full bg-white rounded-[28px] p-6 border border-slate-200/60 shadow-card-sm flex flex-col">

@@ -5,7 +5,7 @@ export default function AttendanceStats({ summary }: { summary: AttendanceSummar
         {
             label: "Attendance Rate",
             value: `${summary.attendanceRate}%`,
-            hint: `${summary.present + summary.late + summary.remote} checked in`,
+            hint: `${summary.present + summary.late + summary.remote + summary.halfDay} of ${summary.total - summary.holiday - summary.weekend - summary.unmarked}`,
             accent: "text-emerald-600",
             bg: "bg-emerald-50",
             icon: (
@@ -17,7 +17,7 @@ export default function AttendanceStats({ summary }: { summary: AttendanceSummar
         {
             label: "Present",
             value: String(summary.present),
-            hint: `${summary.remote} remote`,
+            hint: `${summary.remote} remote · ${summary.halfDay} half day`,
             accent: "text-primary",
             bg: "bg-primary-50",
             icon: (
@@ -30,7 +30,7 @@ export default function AttendanceStats({ summary }: { summary: AttendanceSummar
         {
             label: "Late",
             value: String(summary.late),
-            hint: `${summary.halfDay} half day`,
+            hint: `${summary.onLeave} on leave`,
             accent: "text-amber-600",
             bg: "bg-amber-50",
             icon: (
@@ -41,9 +41,9 @@ export default function AttendanceStats({ summary }: { summary: AttendanceSummar
             ),
         },
         {
-            label: "Absent / Leave",
-            value: String(summary.absent + summary.onLeave),
-            hint: `${summary.absent} absent · ${summary.onLeave} leave`,
+            label: "Absent",
+            value: String(summary.absent),
+            hint: `${summary.holiday + summary.weekend} off days · ${summary.unmarked} unmarked`,
             accent: "text-rose-600",
             bg: "bg-rose-50",
             icon: (

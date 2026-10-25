@@ -5,6 +5,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
+import ClientRefreshLoader from "@/components/layout/ClientRefreshLoader"; // Import this
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -54,13 +55,18 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Server-side guard. Runs on every request before any HTML is sent.
-  // proxy.ts already does this, but doing it here too means the layout
-  // has the user object available without a second network round trip.
   const user = await getSessionUser();
 
   if (!user) {
-    // Hard redirect at the server level. Browser never sees any admin HTML.
+    const cookieStore = await cookies();
+    const hasRefreshToken = cookieStore.has("ph_rt");
+
+    if (hasRefreshToken) {
+      // Render the client loader. It will call the Express backend directly,
+      // get the new cookies, and reload the page.
+      return <ClientRefreshLoader />;
+    }
+
     redirect(LANDING_URL);
   }
 

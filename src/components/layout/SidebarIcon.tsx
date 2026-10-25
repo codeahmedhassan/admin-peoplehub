@@ -38,10 +38,11 @@ export default function SidebarIcon({
                     <path d="M12 6v6l4 2" />
                 </svg>
             );
-        case "performance":
+        case "payroll":
             return (
                 <svg {...strokeProps} className="w-4 h-4">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
             );
         case "timeoff":
@@ -81,6 +82,40 @@ export default function SidebarIcon({
                     <line x1="18" x2="18" y1="20" y2="10" />
                     <line x1="12" x2="12" y1="20" y2="4" />
                     <line x1="6" x2="6" y1="20" y2="14" />
+                </svg>
+            );
+        case "devices":
+            return (
+                <svg {...strokeProps}>
+                    <rect x="2" y="7" width="20" height="14" rx="2" />
+                    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+                </svg>
+            );
+        case "settings":
+            return (
+                <svg {...strokeProps}>
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+            );
+        case "logout":
+            return (
+                <svg {...strokeProps}>
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" x2="9" y1="12" y2="12" />
+                </svg>
+            );
+        case "chevron-up":
+            return (
+                <svg {...strokeProps}>
+                    <polyline points="18 15 12 9 6 15" />
+                </svg>
+            );
+        case "chevron-down":
+            return (
+                <svg {...strokeProps}>
+                    <polyline points="6 9 12 15 18 9" />
                 </svg>
             );
         default:
