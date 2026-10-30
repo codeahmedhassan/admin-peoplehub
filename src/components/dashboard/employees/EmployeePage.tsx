@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { type Employee } from "@/lib/constants";
-import { employeeApi, ApiError } from "@/lib/api";
+import { employeeApi, ApiError, apiFetch } from "@/lib/api";
 import { mapApiEmployeeToUi } from "@/lib/employee-mapper";
 import EmployeePageHeader from "./EmployeePageHeader";
 import EmployeeStats from "./EmployeeStats";
@@ -18,6 +18,7 @@ export default function EmployeePage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loadState, setLoadState] = useState<LoadState>("loading");
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [currency, setCurrency] = useState("USD");
 
     // Filters
     const [search, setSearch] = useState("");
@@ -68,6 +69,21 @@ export default function EmployeePage() {
             cancelled = true;
         };
     }, []);
+
+    useEffect(() => {
+        const fetchWorkspace = async () => {
+            try {
+                const { workspace } = await apiFetch<{ workspace: { currency: string } }>("/workspace/me");
+                if (workspace?.currency) {
+                    setCurrency(workspace.currency);
+                }
+            } catch (err) {
+                console.error("Failed to load workspace currency");
+            }
+        };
+        void fetchWorkspace();
+    }, []);
+
 
     // ---------- Derived filtered list ----------
     const filtered = useMemo(() => {
@@ -221,7 +237,7 @@ export default function EmployeePage() {
     return (
         <div className="flex flex-col gap-6 mb-8">
             <EmployeePageHeader />
-            <EmployeeStats employees={employees} />
+            <EmployeeStats employees={employees} currency={currency} />
 
             {loadError && (
                 <div
@@ -272,6 +288,7 @@ export default function EmployeePage() {
                     onToggleSelectAll={toggleSelectAll}
                     onEdit={editEmployee}
                     onDelete={requestDelete}
+                    currency={currency}
                 />
                 <EmployeePagination
                     page={safePage}

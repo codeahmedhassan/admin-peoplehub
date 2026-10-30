@@ -2,7 +2,6 @@
 
 import { FieldShell, TextInput, SelectInput } from "./Field";
 import {
-    CURRENCIES,
     PAY_FREQUENCIES,
     PAYROLL_GROUPS,
     type EmployeeDraft,
@@ -31,14 +30,6 @@ export default function CompensationStep({ draft, update, errors }: Props) {
                         value={draft.salaryAmount}
                         onChange={(v) => update({ salaryAmount: v.replace(/[^\d.]/g, "") })}
                         placeholder="4500"
-                    />
-                </FieldShell>
-
-                <FieldShell label="Currency">
-                    <SelectInput
-                        value={draft.salaryCurrency}
-                        onChange={(v) => update({ salaryCurrency: v })}
-                        options={CURRENCIES}
                     />
                 </FieldShell>
 

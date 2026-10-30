@@ -224,7 +224,7 @@ export function createEmptyDraft(generatedId: string, today: string): EmployeeDr
 }
 
 // ---------- ID Generation ----------
-export function generateEmployeeId(prefix = "EMP", sequence = 125): string {
+export function generateEmployeeId(prefix = "EMP", sequence = 1): string {
     return `${prefix}-${String(sequence).padStart(5, "0")}`;
 }
 
@@ -295,6 +295,14 @@ export function validateStep(step: number, d: EmployeeDraft): StepFieldErrors {
     if (step === 1) {
         if (!d.firstName.trim()) errors.firstName = "First name is required";
         if (!d.lastName.trim()) errors.lastName = "Last name is required";
+
+        if (!d.employeeId.trim()) errors.employeeId = "Employee ID is required";
+        else if (!/^EMP-\d{5}$/.test(d.employeeId)) {
+            errors.employeeId = "Format must be EMP-00001";
+        } else if (d.employeeId === "EMP-00000") {
+            errors.employeeId = "Please enter a valid ID";
+        }
+
         if (!d.phone.trim()) errors.phone = "Phone number is required";
         else if (!/^[\d\s+\-()]{6,}$/.test(d.phone)) errors.phone = "Enter a valid phone number";
         if (!d.gender) errors.gender = "Please select a gender";

@@ -89,8 +89,6 @@ export default function Sidebar() {
 
     const handleLogout = () => {
         setUserMenuOpen(false);
-        // Replace with your auth sign-out call
-        // eslint-disable-next-line no-console
         console.log("Logout");
         router.push("/login");
     };

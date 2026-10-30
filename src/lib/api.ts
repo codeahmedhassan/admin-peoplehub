@@ -171,6 +171,24 @@ export const employeeApi = {
             method: "DELETE",
         }),
 
+    getActivity: (idOrEmployeeId: string) =>
+        apiFetch<{
+            activities: {
+                id: string;
+                type: string;
+                label: string;
+                actorName: string;
+                at: string;
+            }[]
+        }>(`/employees/${encodeURIComponent(idOrEmployeeId)}/activity`, {
+            method: "GET",
+        }),
+
+    getNextId: () =>
+        apiFetch<{ employeeId: string }>("/employees/next-id", {
+            method: "GET",
+        }),
+
     /**
      * Upload new documents to an existing employee.
      * Returns the updated employee record (with the new documents appended).

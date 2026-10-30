@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { deviceApi, ApiError } from "@/lib/api";
 import { type Device } from "@/lib/devices";
 import { getInitials } from "@/lib/employee-detail";
+import { useToast, ToastContainer } from "@/components/ui/Toast";
 
 interface Props {
     device: Device;
@@ -19,6 +20,7 @@ type EmployeeLink = {
 };
 
 export default function ManageUsersModal({ device, onClose }: Props) {
+    const { toast, showToast, setToast } = useToast();
     const [employees, setEmployees] = useState<EmployeeLink[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -29,7 +31,7 @@ export default function ManageUsersModal({ device, onClose }: Props) {
                 const { employees } = await deviceApi.getLinks(device.id);
                 setEmployees(employees);
             } catch (err) {
-                alert(err instanceof ApiError ? err.message : "Failed to load mappings");
+                showToast(err instanceof ApiError ? err.message : "Failed to load mappings");
             } finally {
                 setLoading(false);
             }
@@ -42,7 +44,7 @@ export default function ManageUsersModal({ device, onClose }: Props) {
             await deviceApi.saveLink(device.id, empMongoId, deviceUserId);
             // Success feedback (could be a toast, for now we rely on the local state update)
         } catch (err) {
-            alert(err instanceof ApiError ? err.message : "Failed to save link");
+            showToast(err instanceof ApiError ? err.message : "Failed to save link");
         }
     };
 
@@ -213,6 +215,7 @@ export default function ManageUsersModal({ device, onClose }: Props) {
                     </button>
                 </div>
             </div>
+            <ToastContainer toast={toast} onClose={() => setToast(null)} />
         </div>
     );
 }

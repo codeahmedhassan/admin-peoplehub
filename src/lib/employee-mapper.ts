@@ -48,7 +48,6 @@ export type ApiEmployee = {
     timeZone: string;
 
     salaryAmount: number;
-    salaryCurrency: string;
     payFrequency: string;
     payrollGroup: string;
 

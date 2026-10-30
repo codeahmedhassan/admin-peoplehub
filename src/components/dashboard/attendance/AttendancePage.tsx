@@ -83,11 +83,19 @@ function computeHours(inT?: string, outT?: string): number | undefined {
     return hours > 0 ? Number(hours.toFixed(2)) : undefined;
 }
 
-function computeRange(view: View, date: string): { from: string; to: string } {
-    if (view === "today") return { from: date, to: date };
-    const end = new Date(date + "T00:00:00");
+function computeRange(view: View, date: string | null): { from: string; to: string } {
+    // Fallback to today if date is not set yet
+    const anchor = date || todayIso();
+
+    if (view === "today") {
+        return { from: anchor, to: anchor };
+    }
+
+    // Week view
+    const end = new Date(anchor + "T00:00:00");
     const start = new Date(end);
     start.setDate(start.getDate() - 6);
+
     return {
         from: start.toISOString().slice(0, 10),
         to: end.toISOString().slice(0, 10),
@@ -132,8 +140,7 @@ export default function AttendancePage() {
                     setRecords(rows.map(toUiRecord));
                 }
             } else {
-                const anchor = date ?? todayIso();
-                const { from, to } = computeRange("week", anchor);
+                const { from, to } = computeRange("week", date);
                 const { records: rows } = await attendanceApi.list({
                     from,
                     to,
@@ -361,6 +368,7 @@ export default function AttendancePage() {
                 rowKey={rowKey}
                 onUpdateRow={updateRow}
                 onSaveRow={saveRow}
+                view={view}
             />
 
             {marking && (

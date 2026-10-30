@@ -106,6 +106,20 @@ export default function SidebarIcon({
                     <line x1="21" x2="9" y1="12" y2="12" />
                 </svg>
             );
+        case "user":
+            return (
+                <svg {...strokeProps}>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+            );
+        case "building":
+            return (
+                <svg {...strokeProps}>
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1" strokeLinecap="round" />
+                </svg>
+            );
         case "chevron-up":
             return (
                 <svg {...strokeProps}>

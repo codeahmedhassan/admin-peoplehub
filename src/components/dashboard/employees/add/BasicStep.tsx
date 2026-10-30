@@ -46,7 +46,14 @@ export default function BasicStep({ draft, update, errors }: Props) {
                 <FieldShell label="First Name" required error={errors.firstName}>
                     <TextInput
                         value={draft.firstName}
-                        onChange={(v) => update({ firstName: v })}
+                        onChange={(v) => {
+                            const patch: Partial<EmployeeDraft> = { firstName: v };
+                            // If preferredName is empty OR matches the old firstName (meaning it was auto-filled), update it
+                            if (!draft.preferredName || draft.preferredName === draft.firstName) {
+                                patch.preferredName = v;
+                            }
+                            update(patch);
+                        }}
                         placeholder="e.g. Jane"
                     />
                 </FieldShell>
@@ -61,12 +68,13 @@ export default function BasicStep({ draft, update, errors }: Props) {
 
                 <FieldShell
                     label="Employee ID"
-                    hint="Auto-generated. Edit if needed."
+                    hint="Auto-generated, but you can edit it."
                     optional
                 >
                     <TextInput
                         value={draft.employeeId}
                         onChange={(v) => update({ employeeId: v })}
+                        placeholder="e.g. EMP-00001"
                     />
                 </FieldShell>
 

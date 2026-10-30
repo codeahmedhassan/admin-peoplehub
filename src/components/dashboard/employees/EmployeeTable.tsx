@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type Employee } from "@/lib/constants";
+import { formatMoney } from "@/lib/employee-detail";
 
 const statusStyles: Record<Employee["status"], string> = {
     Active: "bg-emerald-50 text-emerald-700",
@@ -17,6 +18,7 @@ interface EmployeeTableProps {
     onToggleSelectAll: () => void;
     onEdit: (emp: Employee) => void;
     onDelete: (emp: Employee) => void;
+    currency: string;
 }
 
 export default function EmployeeTable({
@@ -24,7 +26,9 @@ export default function EmployeeTable({
     selectedIds,
     onToggleSelect,
     onToggleSelectAll,
+    onEdit,
     onDelete,
+    currency,
 }: EmployeeTableProps) {
     const router = useRouter();
 
@@ -34,10 +38,6 @@ export default function EmployeeTable({
 
     const goToEmployee = (employeeId: string) => {
         router.push(`/employees/${employeeId}`);
-    };
-
-    const editEmployee = (emp: Employee) => {
-        router.push(`/employees/${emp.employeeId}/edit`);
     };
 
     return (
@@ -163,15 +163,18 @@ export default function EmployeeTable({
                                         )}
                                     </td>
                                     <td className="py-3 pr-3 text-slate-600 font-medium">{emp.designation}</td>
+
+                                    {/* Salary columns now use the workspace currency */}
                                     <td className="py-3 pr-3 text-right font-semibold text-slate-800 tabular-nums">
-                                        ${emp.basicSalary.toLocaleString()}
+                                        {formatMoney(emp.basicSalary, currency)}
                                     </td>
                                     <td className="py-3 pr-3 text-right font-semibold text-slate-800 tabular-nums">
-                                        ${emp.grossSalary.toLocaleString()}
+                                        {formatMoney(emp.grossSalary, currency)}
                                     </td>
                                     <td className="py-3 pr-3 text-right font-semibold text-emerald-700 tabular-nums">
-                                        ${emp.netSalary.toLocaleString()}
+                                        {formatMoney(emp.netSalary, currency)}
                                     </td>
+
                                     <td className="py-3 pr-3">
                                         <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold ${statusStyles[emp.status]}`}>
                                             {emp.status}
@@ -185,7 +188,7 @@ export default function EmployeeTable({
                                     >
                                         <div className="flex items-center justify-end gap-1">
                                             <button
-                                                onClick={() => editEmployee(emp)}
+                                                onClick={() => onEdit(emp)}
                                                 aria-label={`Edit ${emp.name}`}
                                                 className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-primary transition-colors"
                                             >

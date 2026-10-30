@@ -8,8 +8,10 @@ import DevicesTable from "./DevicesTable";
 import AddDeviceModal from "./AddDeviceModal";
 import ManageUsersModal from "./ManageUsersModal";
 import RevokeDeviceDialog from "./RevokeDeviceDialog";
+import { useToast, ToastContainer } from "@/components/ui/Toast";
 
 export default function DevicesPage() {
+    const { toast, showToast, setToast } = useToast();
     const [devices, setDevices] = useState<Device[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export default function DevicesPage() {
             const { devices } = await deviceApi.list();
             setDevices(devices);
         } catch (err) {
-            alert(err instanceof ApiError ? err.message : "Failed to load devices");
+            showToast(err instanceof ApiError ? err.message : "Failed to load devices");
         } finally {
             setLoading(false);
         }
@@ -41,7 +43,7 @@ export default function DevicesPage() {
             setNewRawKey(device.apiKey); // This holds the raw key for the modal
             void loadDevices();          // Refresh the table
         } catch (err) {
-            alert(err instanceof ApiError ? err.message : "Failed to create device");
+            showToast(err instanceof ApiError ? err.message : "Failed to create device");
         }
     };
 
@@ -51,7 +53,7 @@ export default function DevicesPage() {
             void loadDevices();
             setRevokeDevice(null);
         } catch (err) {
-            alert(err instanceof ApiError ? err.message : "Failed to revoke device");
+            showToast(err instanceof ApiError ? err.message : "Failed to revoke device");
         }
     };
 
@@ -124,6 +126,7 @@ export default function DevicesPage() {
                 onCancel={() => setRevokeDevice(null)}
                 onConfirm={() => revokeDevice && handleRevoke(revokeDevice)}
             />
+            <ToastContainer toast={toast} onClose={() => setToast(null)} />
         </div>
     );
 }

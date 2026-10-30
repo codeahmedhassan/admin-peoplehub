@@ -1,6 +1,13 @@
 import { type Employee } from "@/lib/constants";
+import { formatMoney } from "@/lib/employee-detail";
 
-export default function EmployeeStats({ employees }: { employees: Employee[] }) {
+export default function EmployeeStats({
+    employees,
+    currency
+}: {
+    employees: Employee[];
+    currency: string;
+}) {
     const total = employees.length;
     const active = employees.filter((e) => e.status === "Active").length;
     const incomplete = employees.filter((e) => e.incomplete).length;
@@ -10,7 +17,11 @@ export default function EmployeeStats({ employees }: { employees: Employee[] }) 
         { label: "Total Employees", value: total.toString(), accent: "text-primary" },
         { label: "Active", value: active.toString(), accent: "text-emerald-600" },
         { label: "Incomplete Records", value: incomplete.toString(), accent: "text-amber-600" },
-        { label: "Monthly Net Payroll", value: `$${totalNet.toLocaleString()}`, accent: "text-slate-900" },
+        {
+            label: "Monthly Net Payroll",
+            value: formatMoney(totalNet, currency),
+            accent: "text-slate-900"
+        },
     ];
 
     return (

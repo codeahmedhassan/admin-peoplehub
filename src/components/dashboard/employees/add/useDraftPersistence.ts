@@ -8,6 +8,7 @@ import {
     type EmployeeDraft,
     sanitizeDraftForStorage,
 } from "@/lib/employee-form";
+import { employeeApi } from "@/lib/api";
 
 interface StoredPayload {
     step: number;
@@ -29,17 +30,13 @@ export function useDraftPersistence() {
             if (raw) {
                 const parsed = JSON.parse(raw) as StoredPayload;
                 if (parsed?.draft) {
-                    // 👇 Normalize — fill in any fields that older drafts don't have
                     const migratedDraft: EmployeeDraft = {
                         ...createEmptyDraft(
-                            parsed.draft.employeeId ?? generateEmployeeId(),
+                            parsed.draft.employeeId ?? "EMP-00000", // fallback
                             new Date().toISOString().slice(0, 10)
                         ),
                         ...parsed.draft,
-                        // Ensure array fields are always arrays
-                        documents: Array.isArray(parsed.draft.documents)
-                            ? parsed.draft.documents
-                            : [],
+                        documents: Array.isArray(parsed.draft.documents) ? parsed.draft.documents : [],
                     };
                     setDraft(migratedDraft);
                     setStep(parsed.step ?? 1);
@@ -48,12 +45,27 @@ export function useDraftPersistence() {
                     return;
                 }
             }
-        } catch {
-            // Ignore corrupt storage
-        }
-        const today = new Date().toISOString().slice(0, 10);
-        setDraft(createEmptyDraft(generateEmployeeId(), today));
-        setReady(true);
+        } catch { }
+
+        // No draft exists — fetch the next ID from the backend
+        const init = async () => {
+            let nextId = "EMP-00001"; // Fallback
+            try {
+                const { employeeId } = await employeeApi.getNextId();
+                nextId = employeeId;
+            } catch (err) {
+                console.error("Failed to fetch next employee ID", err);
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+            const newDraft = createEmptyDraft(nextId, today);
+
+            // Note: `nextId` is just a suggested preview. The user can edit it freely.
+            setDraft(newDraft);
+            setReady(true);
+        };
+
+        void init();
     }, []);
 
     // Persist on change (debounced slightly to avoid thrashing)

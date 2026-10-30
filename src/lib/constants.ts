@@ -26,10 +26,9 @@ export const PROFILE_SUB_ITEMS: NavItem[] = [
 ];
 
 export const SETTINGS_SUB_ITEMS: NavItem[] = [
-  { label: "Devices", href: "/settings/devices", icon: "devices" },
-  // add more here later:
-  // { label: "Notifications", href: "/settings/notifications", icon: "bell" },
-  // { label: "Billing", href: "/settings/billing", icon: "credit-card" },
+    { label: "My Profile", href: "/settings/profile", icon: "user" },
+    { label: "PaySlip", href: "/settings/payslip", icon: "building" },
+    { label: "Devices", href: "/settings/devices", icon: "devices" },
 ];
 
 // A route is "profile-active" if the current path starts with any of these
